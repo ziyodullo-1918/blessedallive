@@ -65,9 +65,15 @@ export const t = {
   filter: "Filter",
   all: "Hammasi",
   exportCsv: "CSV ga eksport",
+  exportPdf: "PDF ga eksport",
+  period: "Davr",
+  from: "Boshlanish",
+  to: "Tugash",
 
   // Reports
   monthlyReport: "Oylik hisobot",
+  workersMonthlyReport: "Ishchilar oylik hisoboti",
+  productsReport: "Mahsulotlar hisoboti",
   totalProduction: "Umumiy ishlab chiqarish",
   totalEarnings: "Umumiy daromad",
   overallTotal: "Umumiy summa",
@@ -77,6 +83,11 @@ export const t = {
   units: "dona",
   noData: "Ma’lumot yo‘q",
   todaySummary: "Bugungi xulosa",
+  todaySummaryAndCount: "Bugungi xulosa va yozuvlar",
+  myProductionSummary: "Mening ishlab chiqarishim",
+  downloadPdf: "PDF yuklab olish",
+  records: "Yozuvlar",
+  generatedAt: "Yaratilgan vaqt",
 
   // Common
   loading: "Yuklanmoqda…",
@@ -86,6 +97,7 @@ export const t = {
   back: "Orqaga",
   welcome: "Xush kelibsiz",
   hello: "Salom",
+  yourProduction: "Sizning ishlab chiqargan ishingiz",
 };
 
 export type Dict = typeof t;
