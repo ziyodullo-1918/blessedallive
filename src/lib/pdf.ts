@@ -199,3 +199,62 @@ export function productsPdf(opts: {
   footer(doc);
   doc.save(`mahsulotlar_${opts.from}_${opts.to}.pdf`);
 }
+
+export type SalaryRow = {
+  worker_name: string;
+  worker_code: string;
+  quantity: number;
+  total: number;
+  entries: number;
+};
+
+export function salariesPdf(opts: {
+  from: string;
+  to: string;
+  rows: SalaryRow[];
+}) {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  header(doc, t.salariesReport, `${opts.from} → ${opts.to}`);
+
+  const totalSum = opts.rows.reduce((s, r) => s + Number(r.total), 0);
+  const totalQty = opts.rows.reduce((s, r) => s + Number(r.quantity), 0);
+
+  const y = statRow(doc, 90, [
+    { label: t.workers, value: String(opts.rows.length) },
+    { label: t.totalProduction, value: `${formatNumber(totalQty)} ${t.units}` },
+    { label: t.overallTotal, value: formatMoney(totalSum) },
+  ]);
+
+  autoTable(doc, {
+    startY: y + 8,
+    head: [["#", t.workerName, "ID", t.records, `${t.quantity} (${t.units})`, t.totalEarnings]],
+    body: opts.rows.map((r, i) => [
+      String(i + 1),
+      r.worker_name,
+      r.worker_code,
+      String(r.entries),
+      formatNumber(r.quantity),
+      formatMoney(Number(r.total)),
+    ]),
+    foot: [
+      [
+        { content: t.overallTotal, colSpan: 4, styles: { halign: "right", fontStyle: "bold" } },
+        { content: formatNumber(totalQty), styles: { fontStyle: "bold", halign: "right" } },
+        { content: formatMoney(totalSum), styles: { fontStyle: "bold", halign: "right" } },
+      ],
+    ],
+    headStyles: { fillColor: BRAND.dark, textColor: 255, fontSize: 9 },
+    footStyles: { fillColor: BRAND.light, textColor: BRAND.dark, fontSize: 9 },
+    bodyStyles: { fontSize: 9 },
+    alternateRowStyles: { fillColor: [250, 251, 253] },
+    margin: { left: 40, right: 40 },
+    columnStyles: {
+      3: { halign: "right" },
+      4: { halign: "right" },
+      5: { halign: "right" },
+    },
+  });
+
+  footer(doc);
+  doc.save(`maoshlar_${opts.from}_${opts.to}.pdf`);
+}
