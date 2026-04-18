@@ -25,21 +25,19 @@ function AdminLogin() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: { emailRedirectTo: `${window.location.origin}/admin` },
         });
         if (error) throw error;
-        // Grant admin role to the first user (works for any newly-created account)
-        if (data.user) {
-          await supabase.from("user_roles").insert({ user_id: data.user.id, role: "admin" });
-        }
         toast.success(t.saved);
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
+      // Try to claim first-admin role (no-op if an admin already exists and it isn't this user)
+      await supabase.rpc("claim_first_admin" as any);
       const ok = await isCurrentUserAdmin();
       if (!ok) {
         toast.error("Bu hisob administrator emas");
