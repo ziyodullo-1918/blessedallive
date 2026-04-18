@@ -9,38 +9,190 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkerLoginRouteImport } from './routes/worker-login'
+import { Route as WorkerRouteImport } from './routes/worker'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkerIndexRouteImport } from './routes/worker.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as WorkerNewRouteImport } from './routes/worker.new'
+import { Route as AdminWorkersRouteImport } from './routes/admin.workers'
+import { Route as AdminReportsRouteImport } from './routes/admin.reports'
+import { Route as AdminProductsRouteImport } from './routes/admin.products'
 
+const WorkerLoginRoute = WorkerLoginRouteImport.update({
+  id: '/worker-login',
+  path: '/worker-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkerRoute = WorkerRouteImport.update({
+  id: '/worker',
+  path: '/worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkerIndexRoute = WorkerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WorkerRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const WorkerNewRoute = WorkerNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => WorkerRoute,
+} as any)
+const AdminWorkersRoute = AdminWorkersRouteImport.update({
+  id: '/workers',
+  path: '/workers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProductsRoute = AdminProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/worker': typeof WorkerRouteWithChildren
+  '/worker-login': typeof WorkerLoginRoute
+  '/admin/products': typeof AdminProductsRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/workers': typeof AdminWorkersRoute
+  '/worker/new': typeof WorkerNewRoute
+  '/admin/': typeof AdminIndexRoute
+  '/worker/': typeof WorkerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/worker-login': typeof WorkerLoginRoute
+  '/admin/products': typeof AdminProductsRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/workers': typeof AdminWorkersRoute
+  '/worker/new': typeof WorkerNewRoute
+  '/admin': typeof AdminIndexRoute
+  '/worker': typeof WorkerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
+  '/login': typeof LoginRoute
+  '/worker': typeof WorkerRouteWithChildren
+  '/worker-login': typeof WorkerLoginRoute
+  '/admin/products': typeof AdminProductsRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/workers': typeof AdminWorkersRoute
+  '/worker/new': typeof WorkerNewRoute
+  '/admin/': typeof AdminIndexRoute
+  '/worker/': typeof WorkerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/worker'
+    | '/worker-login'
+    | '/admin/products'
+    | '/admin/reports'
+    | '/admin/workers'
+    | '/worker/new'
+    | '/admin/'
+    | '/worker/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/worker-login'
+    | '/admin/products'
+    | '/admin/reports'
+    | '/admin/workers'
+    | '/worker/new'
+    | '/admin'
+    | '/worker'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/login'
+    | '/worker'
+    | '/worker-login'
+    | '/admin/products'
+    | '/admin/reports'
+    | '/admin/workers'
+    | '/worker/new'
+    | '/admin/'
+    | '/worker/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  WorkerRoute: typeof WorkerRouteWithChildren
+  WorkerLoginRoute: typeof WorkerLoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/worker-login': {
+      id: '/worker-login'
+      path: '/worker-login'
+      fullPath: '/worker-login'
+      preLoaderRoute: typeof WorkerLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/worker': {
+      id: '/worker'
+      path: '/worker'
+      fullPath: '/worker'
+      preLoaderRoute: typeof WorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,21 +200,87 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/worker/': {
+      id: '/worker/'
+      path: '/'
+      fullPath: '/worker/'
+      preLoaderRoute: typeof WorkerIndexRouteImport
+      parentRoute: typeof WorkerRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/worker/new': {
+      id: '/worker/new'
+      path: '/new'
+      fullPath: '/worker/new'
+      preLoaderRoute: typeof WorkerNewRouteImport
+      parentRoute: typeof WorkerRoute
+    }
+    '/admin/workers': {
+      id: '/admin/workers'
+      path: '/workers'
+      fullPath: '/admin/workers'
+      preLoaderRoute: typeof AdminWorkersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/products': {
+      id: '/admin/products'
+      path: '/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AdminProductsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminProductsRoute: typeof AdminProductsRoute
+  AdminReportsRoute: typeof AdminReportsRoute
+  AdminWorkersRoute: typeof AdminWorkersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminProductsRoute: AdminProductsRoute,
+  AdminReportsRoute: AdminReportsRoute,
+  AdminWorkersRoute: AdminWorkersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
+interface WorkerRouteChildren {
+  WorkerNewRoute: typeof WorkerNewRoute
+  WorkerIndexRoute: typeof WorkerIndexRoute
+}
+
+const WorkerRouteChildren: WorkerRouteChildren = {
+  WorkerNewRoute: WorkerNewRoute,
+  WorkerIndexRoute: WorkerIndexRoute,
+}
+
+const WorkerRouteWithChildren =
+  WorkerRoute._addFileChildren(WorkerRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
+  LoginRoute: LoginRoute,
+  WorkerRoute: WorkerRouteWithChildren,
+  WorkerLoginRoute: WorkerLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
