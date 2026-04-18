@@ -165,6 +165,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_update_entry: {
+        Args: {
+          _entry_id: string
+          _product_id: string
+          _quantity: number
+          _work_date: string
+        }
+        Returns: undefined
+      }
       admin_upsert_worker: {
         Args: {
           _active: boolean
