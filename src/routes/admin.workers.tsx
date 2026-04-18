@@ -130,10 +130,10 @@ function WorkerDialog({ editing, onDone }: { editing: Worker | null; onDone: () 
     }
     setLoading(true);
     const { error } = await supabase.rpc("admin_upsert_worker", {
-      _id: editing?.id ?? null,
+      _id: (editing?.id ?? null) as any,
       _code: code.trim(),
       _name: name.trim(),
-      _pin: pin.trim() || null,
+      _pin: (pin.trim() || null) as any,
       _active: active,
     });
     setLoading(false);
