@@ -97,6 +97,7 @@ export const t = {
   back: "Orqaga",
   welcome: "Xush kelibsiz",
   hello: "Salom",
+  yourProduction: "Sizning ishlab chiqargan ishingiz",
 };
 
 export type Dict = typeof t;
