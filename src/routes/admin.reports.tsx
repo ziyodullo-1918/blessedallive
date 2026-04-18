@@ -260,11 +260,10 @@ function ReportsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard label={t.overallTotal} value={formatMoney(totalSum)} accent="primary" />
         <StatCard label={t.totalProduction} value={`${formatNumber(totalQty)} ${t.units}`} accent="success" />
-        <StatCard label={t.totalEntries} value={String(filtered.length)} accent="warning" />
-        <StatCard label={t.workers} value={String(byWorker.length)} />
+        <StatCard label={t.workers} value={String(byWorker.length)} accent="warning" />
       </div>
 
       {/* ============ Merged: Workers monthly report (earnings + entries per worker) ============ */}
