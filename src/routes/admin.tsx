@@ -26,9 +26,7 @@ function AdminLayout() {
 
   return (
     <AppShell
-      title={t.dashboard}
-      subtitle={email}
-      userLabel={t.admin}
+      userLabel={`${t.admin}${email ? " · " + email : ""}`}
       onSignOut={adminSignOut}
       navItems={[
         { to: "/admin", label: t.dashboard },
