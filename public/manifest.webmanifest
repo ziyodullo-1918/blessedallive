@@ -1,0 +1,19 @@
+{
+  "name": "Ishlab Chiqarish",
+  "short_name": "Ishlab Chiqarish",
+  "description": "Kichik ishlab chiqarish biznesi uchun kunlik hisobot tizimi.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "lang": "uz",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

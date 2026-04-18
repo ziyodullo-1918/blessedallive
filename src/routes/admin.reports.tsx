@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { formatMoney, formatNumber, t } from "@/lib/i18n";
 import { Download, FileText, Filter, Pencil, Trash2 } from "lucide-react";
-import { workerMonthlyPdf, productsPdf } from "@/lib/pdf";
+import { workerMonthlyPdf, productsPdf, salariesPdf } from "@/lib/pdf";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/reports")({
@@ -135,29 +135,18 @@ function ReportsPage() {
     return [...m.values()].sort((a, b) => b.total - a.total);
   }, [filtered]);
 
-  const exportCsv = () => {
-    const head = ["Sana", "Ishchi", "ID", "Mahsulot", "Kategoriya", "Miqdor", "Narx", "Jami"];
-    const lines = [head.join(",")];
-    for (const r of filtered) {
-      const cells = [
-        r.work_date,
-        r.workers?.name ?? "",
-        r.workers?.worker_code ?? "",
-        r.products?.name ?? "",
-        r.products?.categories?.name ?? "",
-        String(r.quantity),
-        String(r.unit_price),
-        String(r.total),
-      ].map((c) => `"${String(c).replace(/"/g, '""')}"`);
-      lines.push(cells.join(","));
-    }
-    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `hisobot_${from}_${to}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const downloadSalariesPdf = () => {
+    salariesPdf({
+      from,
+      to,
+      rows: byWorker.map((w) => ({
+        worker_name: w.name,
+        worker_code: w.worker_code,
+        quantity: w.qty,
+        total: w.total,
+        entries: w.entries.length,
+      })),
+    });
   };
 
   const downloadWorkerPdf = (w: WorkerAgg) => {
@@ -207,13 +196,13 @@ function ReportsPage() {
         subtitle={`${from} → ${to}`}
         actions={
           <>
+            <Button onClick={downloadSalariesPdf}>
+              <Download className="size-4" />
+              {t.salaries}
+            </Button>
             <Button onClick={downloadProductsPdf} variant="secondary">
               <FileText className="size-4" />
               {t.productsReport}
-            </Button>
-            <Button onClick={exportCsv} variant="secondary">
-              <Download className="size-4" />
-              {t.exportCsv}
             </Button>
           </>
         }
@@ -271,11 +260,10 @@ function ReportsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard label={t.overallTotal} value={formatMoney(totalSum)} accent="primary" />
         <StatCard label={t.totalProduction} value={`${formatNumber(totalQty)} ${t.units}`} accent="success" />
-        <StatCard label={t.totalEntries} value={String(filtered.length)} accent="warning" />
-        <StatCard label={t.workers} value={String(byWorker.length)} />
+        <StatCard label={t.workers} value={String(byWorker.length)} accent="warning" />
       </div>
 
       {/* ============ Merged: Workers monthly report (earnings + entries per worker) ============ */}
