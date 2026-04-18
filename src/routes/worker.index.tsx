@@ -63,7 +63,12 @@ function WorkerHome() {
     <>
       <PageHeader
         title={`${t.hello}, ${session.name}`}
-        subtitle={`${monthName(month)} ${year}`}
+        subtitle={
+          <span className="inline-flex items-center gap-1.5">
+            <Radio className="size-3 animate-pulse text-success" />
+            {monthName(month)} {year} • {t.liveUpdate}
+          </span>
+        }
         actions={
           <Button asChild><Link to="/worker/new"><Plus className="size-4" />{t.addEntry}</Link></Button>
         }
