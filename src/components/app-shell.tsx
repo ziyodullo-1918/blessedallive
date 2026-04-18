@@ -9,17 +9,11 @@ import { cn } from "@/lib/utils";
 type NavItem = { to: string; label: string };
 
 export function AppShell({
-  title,
-  subtitle,
-  actions,
   navItems,
   onSignOut,
   userLabel,
   children,
 }: {
-  title: string;
-  subtitle?: string;
-  actions?: ReactNode;
   navItems: NavItem[];
   onSignOut: () => Promise<void> | void;
   userLabel: string;
@@ -115,16 +109,7 @@ export function AppShell({
         )}
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
-            {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
-          </div>
-          {actions}
-        </div>
-        {children}
-      </main>
+      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
     </div>
   );
 }
