@@ -69,7 +69,6 @@ export const t = {
   salaries: "Maoshlar",
   salariesReport: "Ishchilar maoshlari",
   liveUpdate: "Real vaqt",
-  products: "Mahsulotlar",
   period: "Davr",
   from: "Boshlanish",
   to: "Tugash",
