@@ -68,11 +68,27 @@ function WorkerHome() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label={t.todaySummary} value={formatMoney(todayTotal)} hint={`${todayEntries.length} ${t.totalEntries}`} accent="success" />
-        <StatCard label={t.totalEarnings} value={formatMoney(monthTotal)} hint={monthName(month)} accent="primary" />
-        <StatCard label={t.totalProduction} value={`${formatNumber(monthQty)} ${t.units}`} accent="warning" />
-        <StatCard label={t.totalEntries} value={String(monthEntries.length)} />
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <StatCard
+          label={t.todaySummaryAndCount}
+          value={formatMoney(todayTotal)}
+          hint={`${todayEntries.length} ${t.records.toLowerCase()} • ${formatNumber(
+            todayEntries.reduce((s, e) => s + Number(e.quantity), 0),
+          )} ${t.units}`}
+          accent="success"
+        />
+        <StatCard
+          label={t.totalEarnings}
+          value={formatMoney(monthTotal)}
+          hint={`${monthName(month)} • ${monthEntries.length} ${t.records.toLowerCase()}`}
+          accent="primary"
+        />
+        <StatCard
+          label={t.yourProduction}
+          value={`${formatNumber(monthQty)} ${t.units}`}
+          hint={monthName(month)}
+          accent="warning"
+        />
       </div>
 
       <div className="mt-6 surface rounded-xl border border-border">
