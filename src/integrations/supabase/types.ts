@@ -175,6 +175,7 @@ export type Database = {
         }
         Returns: string
       }
+      claim_first_admin: { Args: never; Returns: undefined }
       delete_my_entry: {
         Args: { _entry_id: string; _pin: string; _worker_id: string }
         Returns: undefined
