@@ -32,6 +32,33 @@ export type Database = {
         }
         Relationships: []
       }
+      periods: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          end_date: string | null
+          id: string
+          start_date: string
+          status: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          start_date: string
+          status?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          start_date?: string
+          status?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           active: boolean
@@ -185,9 +212,17 @@ export type Database = {
         Returns: string
       }
       claim_first_admin: { Args: never; Returns: undefined }
+      close_current_period: { Args: { _end_date?: string }; Returns: string }
       delete_my_entry: {
         Args: { _entry_id: string; _pin: string; _worker_id: string }
         Returns: undefined
+      }
+      get_current_period: {
+        Args: never
+        Returns: {
+          id: string
+          start_date: string
+        }[]
       }
       get_my_entries: {
         Args: { _pin: string; _worker_id: string }
