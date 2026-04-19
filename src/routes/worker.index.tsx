@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRequireWorker } from "@/hooks/use-require-worker";
 import { PageHeader, StatCard, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { formatMoney, formatNumber, monthName, t } from "@/lib/i18n";
+import { formatMoney, formatNumber, t } from "@/lib/i18n";
 import { Plus, Trash2, Radio } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,18 +35,24 @@ function WorkerHome() {
     },
   });
 
-  const now = new Date();
-  const month = now.getMonth(), year = now.getFullYear();
-  const monthEntries = (entries ?? []).filter((e) => {
-    const d = new Date(e.work_date);
-    return d.getMonth() === month && d.getFullYear() === year;
-  });
-  const monthTotal = monthEntries.reduce((s, e) => s + Number(e.total), 0);
-  const monthQty = monthEntries.reduce((s, e) => s + Number(e.quantity), 0);
+  // Realtime updates: when admin edits/adds/deletes my entries, refresh
+  useEffect(() => {
+    if (!session) return;
+    const ch = supabase
+      .channel(`worker-${session.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "work_entries", filter: `worker_id=eq.${session.id}` },
+        () => qc.invalidateQueries({ queryKey: ["my-entries", session.id] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [session, qc]);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const todayEntries = (entries ?? []).filter((e) => e.work_date === todayStr);
-  const todayTotal = todayEntries.reduce((s, e) => s + Number(e.total), 0);
+  const totalQty = (entries ?? []).reduce((s, e) => s + Number(e.quantity), 0);
+  const totalSum = (entries ?? []).reduce((s, e) => s + Number(e.total), 0);
 
   const onDelete = async (e: Entry) => {
     if (!confirm(t.delete + "?")) return;
@@ -66,7 +72,7 @@ function WorkerHome() {
         subtitle={
           <span className="inline-flex items-center gap-1.5">
             <Radio className="size-3 animate-pulse text-success" />
-            {monthName(month)} {year} • {t.liveUpdate}
+            {t.currentPeriod} • {t.liveUpdate}
           </span>
         }
         actions={
@@ -74,26 +80,17 @@ function WorkerHome() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <StatCard
-          label={t.todaySummaryAndCount}
-          value={formatMoney(todayTotal)}
-          hint={`${todayEntries.length} ${t.records.toLowerCase()} • ${formatNumber(
-            todayEntries.reduce((s, e) => s + Number(e.quantity), 0),
-          )} ${t.units}`}
-          accent="success"
-        />
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <StatCard
           label={t.totalEarnings}
-          value={formatMoney(monthTotal)}
-          hint={`${monthName(month)} • ${monthEntries.length} ${t.records.toLowerCase()}`}
+          value={formatMoney(totalSum)}
+          hint={`${(entries ?? []).length} ${t.records.toLowerCase()}`}
           accent="primary"
         />
         <StatCard
           label={t.yourProduction}
-          value={`${formatNumber(monthQty)} ${t.units}`}
-          hint={monthName(month)}
-          accent="warning"
+          value={`${formatNumber(totalQty)} ${t.units}`}
+          accent="success"
         />
       </div>
 

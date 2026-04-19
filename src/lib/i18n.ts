@@ -73,6 +73,19 @@ export const t = {
   from: "Boshlanish",
   to: "Tugash",
 
+  // Periods
+  currentPeriod: "Joriy davr",
+  closePeriod: "Davrni tugatish",
+  closePeriodConfirm: "Joriy davrni tugatishga ishonchingiz komilmi? Yangi davr ertasi kunidan boshlanadi va ishchilar eski yozuvlarni ko‘rmaydi.",
+  periodClosed: "Davr tugatildi",
+  periodHistory: "Davrlar tarixi",
+  open: "Ochiq",
+  closed: "Yopilgan",
+  noPeriods: "Davrlar yo‘q",
+  viewPeriod: "Davrni ko‘rish",
+  selectPeriod: "Davr tanlash",
+  customRange: "O‘zim tanlayman",
+
   // Reports
   monthlyReport: "Oylik hisobot",
   workersMonthlyReport: "Ishchilar oylik hisoboti",
@@ -91,6 +104,7 @@ export const t = {
   downloadPdf: "PDF yuklab olish",
   records: "Yozuvlar",
   generatedAt: "Yaratilgan vaqt",
+  productsBreakdown: "Mahsulotlar bo‘yicha taqsimot",
 
   // Common
   loading: "Yuklanmoqda…",
