@@ -30,6 +30,7 @@ function AdminLayout() {
       onSignOut={adminSignOut}
       navItems={[
         { to: "/admin", label: t.dashboard },
+        { to: "/admin/live", label: t.liveFeed },
         { to: "/admin/workers", label: t.workers },
         { to: "/admin/products", label: t.products },
         { to: "/admin/reports", label: t.reports },

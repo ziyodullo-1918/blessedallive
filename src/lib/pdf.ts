@@ -2,55 +2,56 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatMoney, formatNumber, t } from "./i18n";
 
-// Fresh white + green palette
+// Bold green + white palette
 const BRAND = {
-  green: [22, 163, 74] as [number, number, number],       // #16a34a
-  greenDark: [21, 128, 61] as [number, number, number],   // #15803d
-  greenLight: [220, 252, 231] as [number, number, number], // #dcfce7
-  ink: [20, 32, 24] as [number, number, number],
-  muted: [100, 116, 108] as [number, number, number],
-  line: [220, 230, 224] as [number, number, number],
+  green: [22, 163, 74] as [number, number, number],
+  greenDark: [21, 128, 61] as [number, number, number],
+  greenDeep: [20, 83, 45] as [number, number, number],
+  greenSoft: [187, 247, 208] as [number, number, number],
+  greenLight: [220, 252, 231] as [number, number, number],
+  greenWash: [240, 253, 244] as [number, number, number],
+  ink: [15, 23, 16] as [number, number, number],
+  muted: [90, 110, 96] as [number, number, number],
+  line: [187, 247, 208] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
 };
+
+const PAGE_MARGIN = 32;
 
 function header(doc: jsPDF, title: string, subtitle: string) {
   const w = doc.internal.pageSize.getWidth();
 
-  // White background — clean
-  doc.setFillColor(...BRAND.white);
-  doc.rect(0, 0, w, 90, "F");
-
-  // Green accent bar (left)
+  // Solid green header band — strong brand presence
   doc.setFillColor(...BRAND.green);
-  doc.rect(0, 0, 6, 90, "F");
+  doc.rect(0, 0, w, 92, "F");
+
+  // Inner darker stripe at bottom for depth
+  doc.setFillColor(...BRAND.greenDark);
+  doc.rect(0, 88, w, 4, "F");
 
   // App name
-  doc.setTextColor(...BRAND.green);
+  doc.setTextColor(...BRAND.greenLight);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text(t.appName.toUpperCase(), 28, 28);
+  doc.setFontSize(9);
+  doc.text(t.appName.toUpperCase(), PAGE_MARGIN, 26);
 
   // Title
-  doc.setTextColor(...BRAND.ink);
+  doc.setTextColor(...BRAND.white);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.text(title, 28, 54);
+  doc.text(title, PAGE_MARGIN, 54);
 
   // Subtitle
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.setTextColor(...BRAND.muted);
-  doc.text(subtitle, 28, 72);
+  doc.setTextColor(...BRAND.greenLight);
+  doc.text(subtitle, PAGE_MARGIN, 74);
 
-  // Generated stamp
+  // Generated stamp (right)
   doc.setFontSize(8);
+  doc.setTextColor(...BRAND.greenLight);
   const stamp = `${t.generatedAt}: ${new Date().toLocaleString("uz-UZ")}`;
-  doc.text(stamp, w - 28, 28, { align: "right" });
-
-  // Bottom hairline of header
-  doc.setDrawColor(...BRAND.greenLight);
-  doc.setLineWidth(1);
-  doc.line(28, 84, w - 28, 84);
+  doc.text(stamp, w - PAGE_MARGIN, 26, { align: "right" });
 }
 
 function statRow(
@@ -59,30 +60,41 @@ function statRow(
   items: { label: string; value: string }[],
 ) {
   const w = doc.internal.pageSize.getWidth();
-  const margin = 28;
   const gap = 10;
-  const colW = (w - margin * 2 - gap * (items.length - 1)) / items.length;
+  const colW = (w - PAGE_MARGIN * 2 - gap * (items.length - 1)) / items.length;
+  const cardH = 58;
 
   items.forEach((it, i) => {
-    const x = margin + i * (colW + gap);
+    const x = PAGE_MARGIN + i * (colW + gap);
     // Light green tinted card
-    doc.setFillColor(...BRAND.greenLight);
-    doc.roundedRect(x, y, colW, 56, 8, 8, "F");
-    // Top accent
+    doc.setFillColor(...BRAND.greenWash);
+    doc.roundedRect(x, y, colW, cardH, 8, 8, "F");
+    // Left accent bar
     doc.setFillColor(...BRAND.green);
-    doc.roundedRect(x, y, colW, 3, 2, 2, "F");
+    doc.roundedRect(x, y, 4, cardH, 2, 2, "F");
     // Label
     doc.setTextColor(...BRAND.greenDark);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.text(it.label.toUpperCase(), x + 12, y + 22);
+    doc.text(it.label.toUpperCase(), x + 14, y + 22);
     // Value
     doc.setTextColor(...BRAND.ink);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
-    doc.text(it.value, x + 12, y + 44);
+    doc.text(it.value, x + 14, y + 44);
   });
-  return y + 68;
+  return y + cardH + 14;
+}
+
+function sectionTitle(doc: jsPDF, y: number, text: string) {
+  const w = doc.internal.pageSize.getWidth();
+  doc.setFillColor(...BRAND.green);
+  doc.roundedRect(PAGE_MARGIN, y, w - PAGE_MARGIN * 2, 22, 4, 4, "F");
+  doc.setTextColor(...BRAND.white);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(text, PAGE_MARGIN + 10, y + 15);
+  return y + 22;
 }
 
 function footer(doc: jsPDF) {
@@ -91,25 +103,47 @@ function footer(doc: jsPDF) {
     doc.setPage(i);
     const w = doc.internal.pageSize.getWidth();
     const h = doc.internal.pageSize.getHeight();
-    doc.setDrawColor(...BRAND.greenLight);
-    doc.setLineWidth(1);
-    doc.line(28, h - 30, w - 28, h - 30);
-    doc.setTextColor(...BRAND.muted);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.text(t.appName, 28, h - 16);
-    doc.setTextColor(...BRAND.green);
+    // Green bottom band
+    doc.setFillColor(...BRAND.greenWash);
+    doc.rect(0, h - 28, w, 28, "F");
+    doc.setDrawColor(...BRAND.green);
+    doc.setLineWidth(1.2);
+    doc.line(0, h - 28, w, h - 28);
+    doc.setTextColor(...BRAND.greenDark);
     doc.setFont("helvetica", "bold");
-    doc.text(`${i} / ${pages}`, w - 28, h - 16, { align: "right" });
+    doc.setFontSize(8);
+    doc.text(t.appName, PAGE_MARGIN, h - 11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${i} / ${pages}`, w - PAGE_MARGIN, h - 11, { align: "right" });
   }
 }
 
 const TABLE_COMMON = {
-  headStyles: { fillColor: BRAND.green, textColor: 255, fontSize: 9, fontStyle: "bold" as const },
-  footStyles: { fillColor: BRAND.greenLight, textColor: BRAND.greenDark, fontSize: 9 },
-  bodyStyles: { fontSize: 9, textColor: BRAND.ink },
-  alternateRowStyles: { fillColor: [248, 252, 250] as [number, number, number] },
-  margin: { left: 28, right: 28 },
+  theme: "grid" as const,
+  headStyles: {
+    fillColor: BRAND.green,
+    textColor: 255,
+    fontSize: 9,
+    fontStyle: "bold" as const,
+    halign: "left" as const,
+    cellPadding: 6,
+  },
+  footStyles: {
+    fillColor: BRAND.greenSoft,
+    textColor: BRAND.greenDeep,
+    fontSize: 9,
+    fontStyle: "bold" as const,
+    cellPadding: 6,
+  },
+  bodyStyles: {
+    fontSize: 9,
+    textColor: BRAND.ink,
+    cellPadding: 5,
+    lineColor: BRAND.line,
+    lineWidth: 0.3,
+  },
+  alternateRowStyles: { fillColor: BRAND.greenWash },
+  margin: { left: PAGE_MARGIN, right: PAGE_MARGIN },
 };
 
 export type WorkerEntry = {
@@ -138,14 +172,14 @@ export function workerMonthlyPdf(opts: {
   const totalQty = opts.entries.reduce((s, e) => s + Number(e.quantity), 0);
   const totalSum = opts.entries.reduce((s, e) => s + Number(e.total), 0);
 
-  let y = statRow(doc, 110, [
+  const y = statRow(doc, 110, [
     { label: t.totalEntries, value: String(opts.entries.length) },
     { label: t.totalProduction, value: `${formatNumber(totalQty)} ${t.units}` },
     { label: t.totalEarnings, value: formatMoney(totalSum) },
   ]);
 
   autoTable(doc, {
-    startY: y + 6,
+    startY: y,
     head: [[t.date, t.product, t.category, t.quantity, t.price, t.total]],
     body: opts.entries.map((e) => [
       e.work_date,
@@ -157,17 +191,20 @@ export function workerMonthlyPdf(opts: {
     ]),
     foot: [
       [
-        { content: t.overallTotal, colSpan: 3, styles: { halign: "right", fontStyle: "bold" } },
-        { content: `${formatNumber(totalQty)} ${t.units}`, styles: { fontStyle: "bold", halign: "right" } },
-        "",
-        { content: formatMoney(totalSum), styles: { fontStyle: "bold", halign: "right" } },
+        { content: t.overallTotal, colSpan: 3, styles: { halign: "right" } },
+        { content: `${formatNumber(totalQty)}`, styles: { halign: "right" } },
+        { content: "", styles: {} },
+        { content: formatMoney(totalSum), styles: { halign: "right" } },
       ],
     ],
     ...TABLE_COMMON,
     columnStyles: {
-      3: { halign: "right" },
-      4: { halign: "right" },
-      5: { halign: "right" },
+      0: { cellWidth: 64 },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 80 },
+      3: { cellWidth: 55, halign: "right" },
+      4: { cellWidth: 75, halign: "right" },
+      5: { cellWidth: 85, halign: "right" },
     },
   });
 
@@ -200,7 +237,7 @@ export function productsPdf(opts: {
   ]);
 
   autoTable(doc, {
-    startY: y + 6,
+    startY: y,
     head: [[t.product, t.category, `${t.quantity} (${t.units})`, t.total]],
     body: opts.rows.map((r) => [
       r.product_name,
@@ -210,15 +247,17 @@ export function productsPdf(opts: {
     ]),
     foot: [
       [
-        { content: t.overallTotal, colSpan: 2, styles: { halign: "right", fontStyle: "bold" } },
-        { content: formatNumber(totalQty), styles: { fontStyle: "bold", halign: "right" } },
-        { content: formatMoney(totalSum), styles: { fontStyle: "bold", halign: "right" } },
+        { content: t.overallTotal, colSpan: 2, styles: { halign: "right" } },
+        { content: formatNumber(totalQty), styles: { halign: "right" } },
+        { content: formatMoney(totalSum), styles: { halign: "right" } },
       ],
     ],
     ...TABLE_COMMON,
     columnStyles: {
-      2: { halign: "right" },
-      3: { halign: "right" },
+      0: { cellWidth: "auto" },
+      1: { cellWidth: 110 },
+      2: { cellWidth: 90, halign: "right" },
+      3: { cellWidth: 110, halign: "right" },
     },
   });
 
@@ -232,7 +271,6 @@ export type SalaryRow = {
   quantity: number;
   total: number;
   entries: number;
-  // Per-product breakdown for this worker
   products: { product_name: string; quantity: number; total: number }[];
 };
 
@@ -253,9 +291,12 @@ export function salariesPdf(opts: {
     { label: t.overallTotal, value: formatMoney(totalSum) },
   ]);
 
-  // Summary table
+  // Summary heading
+  y = sectionTitle(doc, y, t.salariesReport.toUpperCase()) + 6;
+
+  // Summary table — 5 columns
   autoTable(doc, {
-    startY: y + 6,
+    startY: y,
     head: [["#", t.workerName, "ID", `${t.quantity} (${t.units})`, t.totalEarnings]],
     body: opts.rows.map((r, i) => [
       String(i + 1),
@@ -266,15 +307,18 @@ export function salariesPdf(opts: {
     ]),
     foot: [
       [
-        { content: t.overallTotal, colSpan: 3, styles: { halign: "right", fontStyle: "bold" } },
-        { content: formatNumber(totalQty), styles: { fontStyle: "bold", halign: "right" } },
-        { content: formatMoney(totalSum), styles: { fontStyle: "bold", halign: "right" } },
+        { content: t.overallTotal, colSpan: 3, styles: { halign: "right" } },
+        { content: formatNumber(totalQty), styles: { halign: "right" } },
+        { content: formatMoney(totalSum), styles: { halign: "right" } },
       ],
     ],
     ...TABLE_COMMON,
     columnStyles: {
-      3: { halign: "right" },
-      4: { halign: "right" },
+      0: { cellWidth: 32, halign: "center" },
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 80 },
+      3: { cellWidth: 90, halign: "right" },
+      4: { cellWidth: 130, halign: "right" },
     },
   });
 
@@ -283,23 +327,20 @@ export function salariesPdf(opts: {
     if (r.products.length === 0) continue;
     const lastY = (doc as any).lastAutoTable?.finalY ?? y;
     const pageH = doc.internal.pageSize.getHeight();
-    let startY = lastY + 24;
-    if (startY > pageH - 120) {
+    let startY = lastY + 22;
+    if (startY > pageH - 140) {
       doc.addPage();
-      startY = 60;
+      startY = 50;
     }
 
-    // Section heading bar
-    const w = doc.internal.pageSize.getWidth();
-    doc.setFillColor(...BRAND.greenLight);
-    doc.roundedRect(28, startY - 16, w - 56, 22, 4, 4, "F");
-    doc.setTextColor(...BRAND.greenDark);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(`${r.worker_name} • #${r.worker_code} — ${t.productsBreakdown}`, 36, startY - 1);
+    startY = sectionTitle(
+      doc,
+      startY,
+      `${r.worker_name}  •  #${r.worker_code}  —  ${t.productsBreakdown}`,
+    );
 
     autoTable(doc, {
-      startY: startY + 8,
+      startY: startY + 6,
       head: [[t.product, `${t.quantity} (${t.units})`, t.total]],
       body: r.products.map((p) => [
         p.product_name,
@@ -308,13 +349,17 @@ export function salariesPdf(opts: {
       ]),
       foot: [
         [
-          { content: t.overallTotal, styles: { halign: "right", fontStyle: "bold" } },
-          { content: formatNumber(r.quantity), styles: { fontStyle: "bold", halign: "right" } },
-          { content: formatMoney(r.total), styles: { fontStyle: "bold", halign: "right" } },
+          { content: t.overallTotal, styles: { halign: "right" } },
+          { content: formatNumber(r.quantity), styles: { halign: "right" } },
+          { content: formatMoney(r.total), styles: { halign: "right" } },
         ],
       ],
       ...TABLE_COMMON,
-      columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } },
+      columnStyles: {
+        0: { cellWidth: "auto" },
+        1: { cellWidth: 110, halign: "right" },
+        2: { cellWidth: 130, halign: "right" },
+      },
     });
   }
 
