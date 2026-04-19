@@ -1,15 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, StatCard, EmptyState } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { formatMoney, formatNumber, t } from "@/lib/i18n";
-import { Download, FileText, Filter, Pencil, Trash2 } from "lucide-react";
+import { Download, FileText, Filter, Pencil, Trash2, CalendarClock, History } from "lucide-react";
 import { workerMonthlyPdf, productsPdf, salariesPdf } from "@/lib/pdf";
 import { toast } from "sonner";
 
@@ -29,18 +31,56 @@ type Row = {
   products: { name: string; categories: { name: string } | null } | null;
 };
 
-function firstOfMonth() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-}
-function today() {
+type Period = {
+  id: string;
+  start_date: string;
+  end_date: string | null;
+  status: string;
+  closed_at: string | null;
+};
+
+function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
 function ReportsPage() {
   const qc = useQueryClient();
-  const [from, setFrom] = useState(firstOfMonth());
-  const [to, setTo] = useState(today());
+
+  // ----- Periods -----
+  const { data: periods } = useQuery({
+    queryKey: ["periods"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("periods")
+        .select("id, start_date, end_date, status, closed_at")
+        .order("start_date", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Period[];
+    },
+  });
+
+  const currentPeriod = useMemo(() => periods?.find((p) => p.status === "open"), [periods]);
+
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string>("__current__");
+  const [from, setFrom] = useState(todayStr());
+  const [to, setTo] = useState(todayStr());
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Sync from/to from selected period
+  useEffect(() => {
+    if (!periods) return;
+    if (selectedPeriodId === "__custom__") return;
+    const p =
+      selectedPeriodId === "__current__"
+        ? currentPeriod
+        : periods.find((x) => x.id === selectedPeriodId);
+    if (p) {
+      setFrom(p.start_date);
+      setTo(p.end_date ?? todayStr());
+    }
+  }, [selectedPeriodId, periods, currentPeriod]);
+
   const [workerId, setWorkerId] = useState("__all__");
   const [productId, setProductId] = useState("__all__");
   const [search, setSearch] = useState("");
@@ -90,7 +130,6 @@ function ReportsPage() {
   const totalSum = filtered.reduce((s, r) => s + Number(r.total), 0);
   const totalQty = filtered.reduce((s, r) => s + Number(r.quantity), 0);
 
-  // ============ Workers monthly merged section ============
   type WorkerAgg = {
     worker_id: string;
     name: string;
@@ -135,6 +174,19 @@ function ReportsPage() {
     return [...m.values()].sort((a, b) => b.total - a.total);
   }, [filtered]);
 
+  // Per-worker product breakdown for salary PDF
+  const workerProductBreakdown = (w: WorkerAgg) => {
+    const m = new Map<string, { product_name: string; quantity: number; total: number }>();
+    for (const e of w.entries) {
+      const key = e.products?.name ?? "—";
+      const cur = m.get(key) ?? { product_name: key, quantity: 0, total: 0 };
+      cur.quantity += Number(e.quantity);
+      cur.total += Number(e.total);
+      m.set(key, cur);
+    }
+    return [...m.values()].sort((a, b) => b.total - a.total);
+  };
+
   const downloadSalariesPdf = () => {
     salariesPdf({
       from,
@@ -145,6 +197,7 @@ function ReportsPage() {
         quantity: w.qty,
         total: w.total,
         entries: w.entries.length,
+        products: workerProductBreakdown(w),
       })),
     });
   };
@@ -189,13 +242,43 @@ function ReportsPage() {
     }
   };
 
+  const closePeriod = async () => {
+    const { error } = await supabase.rpc("close_current_period", { _end_date: todayStr() });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(t.periodClosed);
+    setCloseOpen(false);
+    qc.invalidateQueries({ queryKey: ["periods"] });
+    qc.invalidateQueries({ queryKey: ["report"] });
+  };
+
   return (
     <>
       <PageHeader
         title={t.reports}
-        subtitle={`${from} → ${to}`}
+        subtitle={
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <span className="font-mono text-xs">{from} → {to}</span>
+            {currentPeriod && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success">
+                <CalendarClock className="size-3" />
+                {t.currentPeriod}: {currentPeriod.start_date}
+              </span>
+            )}
+          </span>
+        }
         actions={
           <>
+            <Button variant="secondary" onClick={() => setHistoryOpen(true)}>
+              <History className="size-4" />
+              {t.periodHistory}
+            </Button>
+            <Button variant="secondary" onClick={() => setCloseOpen(true)}>
+              <CalendarClock className="size-4" />
+              {t.closePeriod}
+            </Button>
             <Button onClick={downloadSalariesPdf}>
               <Download className="size-4" />
               {t.salaries}
@@ -208,45 +291,48 @@ function ReportsPage() {
         }
       />
 
-      <div className="surface mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-5">
-        <div className="space-y-1">
-          <Label className="text-xs">
-            {t.from}
-          </Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">{t.to}</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">{t.worker}</Label>
-          <Select value={workerId} onValueChange={setWorkerId}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+      <div className="surface mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-6">
+        <div className="space-y-1 md:col-span-2">
+          <Label className="text-xs">{t.selectPeriod}</Label>
+          <Select value={selectedPeriodId} onValueChange={setSelectedPeriodId}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">{t.all}</SelectItem>
-              {(workers ?? []).map((w: any) => (
-                <SelectItem key={w.id} value={w.id}>
-                  {w.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="__current__">{t.currentPeriod}</SelectItem>
+              <SelectItem value="__custom__">{t.customRange}</SelectItem>
+              {(periods ?? [])
+                .filter((p) => p.status === "closed")
+                .map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.start_date} → {p.end_date}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">{t.product}</Label>
-          <Select value={productId} onValueChange={setProductId}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
+          <Label className="text-xs">{t.from}</Label>
+          <Input
+            type="date"
+            value={from}
+            onChange={(e) => { setFrom(e.target.value); setSelectedPeriodId("__custom__"); }}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">{t.to}</Label>
+          <Input
+            type="date"
+            value={to}
+            onChange={(e) => { setTo(e.target.value); setSelectedPeriodId("__custom__"); }}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">{t.worker}</Label>
+          <Select value={workerId} onValueChange={setWorkerId}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">{t.all}</SelectItem>
-              {(products ?? []).map((p: any) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
+              {(workers ?? []).map((w: any) => (
+                <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -266,26 +352,22 @@ function ReportsPage() {
         <StatCard label={t.workers} value={String(byWorker.length)} accent="warning" />
       </div>
 
-      {/* ============ Merged: Workers monthly report (earnings + entries per worker) ============ */}
+      {/* Workers monthly */}
       <div className="mt-6 surface rounded-xl border border-border">
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <div className="font-semibold">{t.workersMonthlyReport}</div>
-          <div className="text-xs text-muted-foreground">
-            {from} → {to}
-          </div>
+          <div className="font-mono text-xs text-muted-foreground">{from} → {to}</div>
         </div>
 
         {isLoading ? (
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">{t.loading}</div>
         ) : byWorker.length === 0 ? (
-          <div className="p-4">
-            <EmptyState title={t.noData} />
-          </div>
+          <div className="p-4"><EmptyState title={t.noData} /></div>
         ) : (
           <div className="divide-y divide-border/60">
             {byWorker.map((w) => (
               <details key={w.worker_id} className="group">
-                <summary className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
+                <summary className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-accent/40">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-semibold">{w.name}</span>
@@ -301,17 +383,14 @@ function ReportsPage() {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      downloadWorkerPdf(w);
-                    }}
+                    onClick={(e) => { e.preventDefault(); downloadWorkerPdf(w); }}
                   >
                     <FileText className="size-4" />
                     PDF
                   </Button>
                 </summary>
 
-                <div className="overflow-x-auto bg-muted/20 px-4 pb-4">
+                <div className="overflow-x-auto bg-accent/15 px-4 pb-4">
                   <table className="w-full text-sm">
                     <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                       <tr>
@@ -336,12 +415,8 @@ function ReportsPage() {
                             )}
                           </td>
                           <td className="px-2 py-2 text-right">{formatNumber(r.quantity)}</td>
-                          <td className="px-2 py-2 text-right font-mono">
-                            {formatMoney(Number(r.unit_price))}
-                          </td>
-                          <td className="px-2 py-2 text-right font-mono font-semibold">
-                            {formatMoney(Number(r.total))}
-                          </td>
+                          <td className="px-2 py-2 text-right font-mono">{formatMoney(Number(r.unit_price))}</td>
+                          <td className="px-2 py-2 text-right font-mono font-semibold">{formatMoney(Number(r.total))}</td>
                           <td className="px-2 py-2">
                             <div className="flex justify-end gap-1">
                               <Button size="icon" variant="ghost" onClick={() => setEditing(r)}>
@@ -363,7 +438,7 @@ function ReportsPage() {
         )}
       </div>
 
-      {/* ============ Products summary ============ */}
+      {/* Products summary */}
       <div className="mt-6 surface rounded-xl border border-border p-4">
         <div className="mb-3 flex items-center justify-between">
           <div className="font-semibold">{t.productionByProduct}</div>
@@ -409,6 +484,76 @@ function ReportsPage() {
           qc.invalidateQueries({ queryKey: ["report"] });
         }}
       />
+
+      {/* Close period dialog */}
+      <Dialog open={closeOpen} onOpenChange={setCloseOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.closePeriod}</DialogTitle>
+            <DialogDescription>{t.closePeriodConfirm}</DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground">
+            {currentPeriod && (
+              <div className="rounded-md border border-border bg-accent/30 p-3">
+                <div className="font-mono text-xs">
+                  {currentPeriod.start_date} → {todayStr()}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCloseOpen(false)}>{t.cancel}</Button>
+            <Button onClick={closePeriod}>{t.confirm}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* History dialog */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t.periodHistory}</DialogTitle>
+            <DialogDescription>{t.periodHistory}</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-96 overflow-y-auto">
+            {!periods || periods.length === 0 ? (
+              <EmptyState title={t.noPeriods} />
+            ) : (
+              <div className="divide-y divide-border/60">
+                {periods.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 px-2 py-3 text-left transition-colors hover:bg-accent/40"
+                    onClick={() => {
+                      setSelectedPeriodId(p.status === "open" ? "__current__" : p.id);
+                      setHistoryOpen(false);
+                    }}
+                  >
+                    <div>
+                      <div className="font-mono text-sm">
+                        {p.start_date} → {p.end_date ?? "…"}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {p.status === "open" ? t.open : `${t.closed} • ${p.closed_at?.slice(0, 10) ?? ""}`}
+                      </div>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        p.status === "open"
+                          ? "bg-success/15 text-success"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {p.status === "open" ? t.open : t.closed}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -429,8 +574,7 @@ function EditEntryDialog({
   const [workDate, setWorkDate] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
-  // Sync state when entry changes
-  useMemo(() => {
+  useEffect(() => {
     if (entry) {
       setProductId(entry.product_id);
       setQuantity(String(entry.quantity));
@@ -466,6 +610,7 @@ function EditEntryDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t.edit}</DialogTitle>
+          <DialogDescription>{t.edit}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1">
@@ -483,13 +628,13 @@ function EditEntryDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>{t.quantity}</Label>
               <Input
                 type="number"
-                inputMode="decimal"
-                step="0.01"
+                min="0"
+                step="any"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
               />
@@ -500,12 +645,8 @@ function EditEntryDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              {t.cancel}
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? t.loading : t.save}
-            </Button>
+            <Button type="button" variant="ghost" onClick={onClose}>{t.cancel}</Button>
+            <Button type="submit" disabled={saving}>{t.save}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
