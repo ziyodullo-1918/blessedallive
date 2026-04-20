@@ -67,7 +67,7 @@ function Index() {
               </div>
               <div className="text-lg font-semibold">{t.worker}</div>
               <p className="mt-1 text-sm text-muted-foreground">
-                Ishchi ID va PIN-kod orqali kunlik ishingizni kiriting.
+                Hodim ID va PIN-kod orqali kunlik ishingizni kiriting.
               </p>
               <Button className="mt-6 w-full" variant="secondary">
                 {t.loginAsWorker}

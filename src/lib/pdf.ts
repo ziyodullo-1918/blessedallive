@@ -192,8 +192,8 @@ export function workerMonthlyPdf(opts: {
     foot: [
       [
         { content: t.overallTotal, colSpan: 3, styles: { halign: "right" } },
-        { content: `${formatNumber(totalQty)}`, styles: { halign: "right" } },
-        { content: "", styles: {} },
+        { content: formatNumber(totalQty), styles: { halign: "right" } },
+        { content: "", styles: { halign: "right" } },
         { content: formatMoney(totalSum), styles: { halign: "right" } },
       ],
     ],
