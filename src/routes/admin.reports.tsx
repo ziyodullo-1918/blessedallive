@@ -502,14 +502,21 @@ function ReportsPage() {
             <DialogTitle>{t.closePeriod}</DialogTitle>
             <DialogDescription>{t.closePeriodConfirm}</DialogDescription>
           </DialogHeader>
-          <div className="text-sm text-muted-foreground">
+          <div className="space-y-3">
             {currentPeriod && (
-              <div className="rounded-md border border-border bg-accent/30 p-3">
-                <div className="font-mono text-xs">
-                  {currentPeriod.start_date} → {todayStr()}
-                </div>
+              <div className="rounded-md border border-border bg-accent/30 p-3 text-xs font-mono">
+                {currentPeriod.name ?? ""} • {currentPeriod.start_date} → …
               </div>
             )}
+            <div className="space-y-1">
+              <Label className="text-xs">{t.endDate}</Label>
+              <Input type="date" value={closeEndDate} onChange={(e) => setCloseEndDate(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">{t.nextStartDate}</Label>
+              <Input type="date" value={closeNextStart} onChange={(e) => setCloseNextStart(e.target.value)} placeholder={t.autoNext} />
+              <div className="text-[11px] text-muted-foreground">{t.autoNext}</div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCloseOpen(false)}>{t.cancel}</Button>
@@ -541,11 +548,9 @@ function ReportsPage() {
                     }}
                   >
                     <div>
-                      <div className="font-mono text-sm">
+                      <div className="font-semibold text-sm">{p.name ?? "—"}</div>
+                      <div className="font-mono text-xs text-muted-foreground">
                         {p.start_date} → {p.end_date ?? "…"}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {p.status === "open" ? t.open : `${t.closed} • ${p.closed_at?.slice(0, 10) ?? ""}`}
                       </div>
                     </div>
                     <span
