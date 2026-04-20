@@ -1,7 +1,6 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { AppShell } from "@/components/app-shell";
+import { AppShell, workerSignOut } from "@/components/app-shell";
 import { useRequireWorker } from "@/hooks/use-require-worker";
-import { clearWorkerSession } from "@/lib/worker-session";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/worker")({
@@ -16,7 +15,7 @@ function WorkerLayout() {
   return (
     <AppShell
       userLabel={`${t.worker} · ${session.name}`}
-      onSignOut={() => clearWorkerSession()}
+      onSignOut={workerSignOut}
       navItems={[
         { to: "/worker", label: t.myWork },
         { to: "/worker/new", label: t.addEntry },

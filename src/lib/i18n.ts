@@ -7,23 +7,24 @@ export const t = {
   signIn: "Kirish",
   signOut: "Chiqish",
   admin: "Administrator",
-  worker: "Ishchi",
+  worker: "Hodim",
   email: "Email",
   password: "Parol",
-  workerCode: "Ishchi ID",
+  workerCode: "Hodim ID",
   pin: "PIN-kod",
   loginAsAdmin: "Administrator sifatida kirish",
-  loginAsWorker: "Ishchi sifatida kirish",
+  loginAsWorker: "Hodim sifatida kirish",
   invalidCredentials: "Noto‘g‘ri ma’lumotlar",
   invalidPin: "Noto‘g‘ri ID yoki PIN-kod",
   signUp: "Ro‘yxatdan o‘tish",
   noAccount: "Hisobingiz yo‘qmi?",
   haveAccount: "Hisobingiz bormi?",
   createAdmin: "Administrator yaratish",
+  sessionExpired: "Sessiya tugadi, qaytadan kiring",
 
   // Nav
   dashboard: "Boshqaruv paneli",
-  workers: "Ishchilar",
+  workers: "Hodimlar",
   products: "Mahsulotlar",
   categories: "Kategoriyalar",
   reports: "Hisobotlar",
@@ -33,7 +34,7 @@ export const t = {
 
   // Workers
   workerName: "Ism",
-  addWorker: "Ishchi qo‘shish",
+  addWorker: "Hodim qo‘shish",
   editWorker: "Tahrirlash",
   deleteWorker: "O‘chirish",
   active: "Faol",
@@ -65,19 +66,23 @@ export const t = {
   search: "Qidirish",
   filter: "Filter",
   all: "Hammasi",
-  exportCsv: "CSV ga eksport",
   exportPdf: "PDF ga eksport",
   salaries: "Maoshlar",
-  salariesReport: "Ishchilar maoshlari",
+  salariesReport: "Hodimlar maoshlari",
   liveUpdate: "Real vaqt",
   period: "Davr",
+  periodName: "Davr nomi",
   from: "Boshlanish",
   to: "Tugash",
+  startDate: "Boshlanish sanasi",
+  endDate: "Tugash sanasi",
+  nextStartDate: "Keyingi davr boshlanishi",
+  autoNext: "Avto: tugagan kuning ertasi",
 
   // Periods
   currentPeriod: "Joriy davr",
   closePeriod: "Davrni tugatish",
-  closePeriodConfirm: "Joriy davrni tugatishga ishonchingiz komilmi? Yangi davr ertasi kunidan boshlanadi va ishchilar eski yozuvlarni ko‘rmaydi.",
+  closePeriodConfirm: "Joriy davrni tugatishga ishonchingiz komilmi? Hodimlar eski yozuvlarni avtomatik ravishda tarixda ko‘rishadi.",
   periodClosed: "Davr tugatildi",
   periodHistory: "Davrlar tarixi",
   open: "Ochiq",
@@ -89,13 +94,13 @@ export const t = {
 
   // Reports
   monthlyReport: "Oylik hisobot",
-  workersMonthlyReport: "Ishchilar oylik hisoboti",
+  workersMonthlyReport: "Hodimlar oylik hisoboti",
   productsReport: "Mahsulotlar hisoboti",
   totalProduction: "Umumiy ishlab chiqarish",
   totalEarnings: "Umumiy daromad",
   overallTotal: "Umumiy summa",
   productionByProduct: "Mahsulot bo‘yicha ishlab chiqarish",
-  earningsByWorker: "Ishchi bo‘yicha daromad",
+  earningsByWorker: "Hodim bo‘yicha daromad",
   totalEntries: "Yozuvlar soni",
   units: "dona",
   noData: "Ma’lumot yo‘q",
@@ -133,3 +138,11 @@ export const monthName = (m: number) => {
   ];
   return names[m] ?? "";
 };
+
+// Auto-name a period like the database function (Aprel boshi/o'rtasi/oxiri)
+export function autoPeriodName(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = d.getDate();
+  const part = day <= 10 ? "boshi" : day <= 20 ? "o'rtasi" : "oxiri";
+  return `${monthName(d.getMonth())} ${part}`;
+}

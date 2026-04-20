@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRequireWorker } from "@/hooks/use-require-worker";
 import { PageHeader, StatCard, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { formatMoney, formatNumber, t } from "@/lib/i18n";
-import { Plus, Trash2, Radio } from "lucide-react";
+import { Plus, Trash2, Radio, History } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/worker/")({
@@ -18,24 +20,46 @@ type Entry = {
   product_name: string; category_name: string | null; created_at: string;
 };
 
+type Period = {
+  id: string; name: string | null; start_date: string; end_date: string | null; status: string;
+};
+
 function WorkerHome() {
   const { session } = useRequireWorker();
   const qc = useQueryClient();
+  const [periodId, setPeriodId] = useState<string>("__current__");
+
+  // Hodimning barcha davrlari
+  const { data: periods } = useQuery({
+    enabled: !!session,
+    queryKey: ["my-periods", session?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_my_periods", { _token: session!.token });
+      if (error) throw error;
+      return (data ?? []) as Period[];
+    },
+  });
+
+  const currentPeriod = useMemo(() => periods?.find((p) => p.status === "open"), [periods]);
+  const selectedPeriod = useMemo(() => {
+    if (periodId === "__current__") return currentPeriod;
+    return periods?.find((p) => p.id === periodId);
+  }, [periodId, periods, currentPeriod]);
 
   const { data: entries, isLoading } = useQuery({
     enabled: !!session,
-    queryKey: ["my-entries", session?.id],
+    queryKey: ["my-entries", session?.id, periodId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_my_entries", {
-        _worker_id: session!.id,
-        _pin: session!.pin,
-      });
+        _token: session!.token,
+        _period_id: periodId === "__current__" ? undefined : periodId,
+      } as any);
       if (error) throw error;
       return (data ?? []) as Entry[];
     },
   });
 
-  // Realtime updates: when admin edits/adds/deletes my entries, refresh
+  // Realtime: faqat joriy davr ko'rilayotganda yangilik
   useEffect(() => {
     if (!session) return;
     const ch = supabase
@@ -44,6 +68,14 @@ function WorkerHome() {
         "postgres_changes",
         { event: "*", schema: "public", table: "work_entries", filter: `worker_id=eq.${session.id}` },
         () => qc.invalidateQueries({ queryKey: ["my-entries", session.id] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "periods" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["my-periods", session.id] });
+          qc.invalidateQueries({ queryKey: ["my-entries", session.id] });
+        },
       )
       .subscribe();
     return () => {
@@ -55,9 +87,13 @@ function WorkerHome() {
   const totalSum = (entries ?? []).reduce((s, e) => s + Number(e.total), 0);
 
   const onDelete = async (e: Entry) => {
+    if (periodId !== "__current__") {
+      toast.error("Yopilgan davr yozuvini o'chirib bo'lmaydi");
+      return;
+    }
     if (!confirm(t.delete + "?")) return;
     const { error } = await supabase.rpc("delete_my_entry", {
-      _worker_id: session!.id, _pin: session!.pin, _entry_id: e.id,
+      _token: session!.token, _entry_id: e.id,
     });
     if (error) toast.error(error.message);
     else { toast.success(t.deleted); qc.invalidateQueries({ queryKey: ["my-entries", session!.id] }); }
@@ -65,20 +101,52 @@ function WorkerHome() {
 
   if (!session) return null;
 
+  const isOpen = selectedPeriod?.status === "open";
+
   return (
     <>
       <PageHeader
         title={`${t.hello}, ${session.name}`}
         subtitle={
           <span className="inline-flex items-center gap-1.5">
-            <Radio className="size-3 animate-pulse text-success" />
-            {t.currentPeriod} • {t.liveUpdate}
+            {isOpen ? (
+              <>
+                <Radio className="size-3 animate-pulse text-success" />
+                {selectedPeriod?.name ?? t.currentPeriod} • {t.liveUpdate}
+              </>
+            ) : (
+              <>
+                <History className="size-3 text-muted-foreground" />
+                {selectedPeriod?.name ?? "—"} • {selectedPeriod?.start_date} → {selectedPeriod?.end_date}
+              </>
+            )}
           </span>
         }
         actions={
-          <Button asChild><Link to="/worker/new"><Plus className="size-4" />{t.addEntry}</Link></Button>
+          isOpen ? (
+            <Button asChild><Link to="/worker/new"><Plus className="size-4" />{t.addEntry}</Link></Button>
+          ) : null
         }
       />
+
+      <div className="surface mb-4 rounded-xl border border-border p-3">
+        <Label className="text-xs">{t.selectPeriod}</Label>
+        <Select value={periodId} onValueChange={setPeriodId}>
+          <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__current__">
+              {t.currentPeriod}{currentPeriod?.name ? ` — ${currentPeriod.name}` : ""}
+            </SelectItem>
+            {(periods ?? [])
+              .filter((p) => p.status === "closed")
+              .map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name ?? `${p.start_date} → ${p.end_date}`}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <StatCard
@@ -99,7 +167,7 @@ function WorkerHome() {
         {isLoading ? (
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">{t.loading}</div>
         ) : !entries || entries.length === 0 ? (
-          <EmptyState title={t.noData} hint={t.addEntry} />
+          <EmptyState title={t.noData} hint={isOpen ? t.addEntry : undefined} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -110,7 +178,7 @@ function WorkerHome() {
                   <th className="px-3 py-2 text-right">{t.quantity}</th>
                   <th className="px-3 py-2 text-right">{t.price}</th>
                   <th className="px-3 py-2 text-right">{t.total}</th>
-                  <th className="px-3 py-2"></th>
+                  {isOpen && <th className="px-3 py-2"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -124,11 +192,13 @@ function WorkerHome() {
                     <td className="px-3 py-2 text-right">{formatNumber(e.quantity)}</td>
                     <td className="px-3 py-2 text-right font-mono">{formatMoney(Number(e.unit_price))}</td>
                     <td className="px-3 py-2 text-right font-mono font-semibold">{formatMoney(Number(e.total))}</td>
-                    <td className="px-3 py-2 text-right">
-                      <Button size="icon" variant="ghost" onClick={() => onDelete(e)}>
-                        <Trash2 className="size-4 text-destructive" />
-                      </Button>
-                    </td>
+                    {isOpen && (
+                      <td className="px-3 py-2 text-right">
+                        <Button size="icon" variant="ghost" onClick={() => onDelete(e)}>
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

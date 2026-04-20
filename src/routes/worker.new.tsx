@@ -47,8 +47,7 @@ function NewEntry() {
     if (!productId) { toast.error(t.selectProduct); return; }
     setLoading(true);
     const { error } = await supabase.rpc("submit_work_entry", {
-      _worker_id: session.id,
-      _pin: session.pin,
+      _token: session.token,
       _product_id: productId,
       _quantity: Number(quantity),
       _work_date: date,

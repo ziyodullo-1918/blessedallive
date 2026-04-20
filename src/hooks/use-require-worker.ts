@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { getWorkerSession, type WorkerSession } from "@/lib/worker-session";
+import { clearWorkerSession, getWorkerSession, type WorkerSession } from "@/lib/worker-session";
 
 export function useRequireWorker() {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ export function useRequireWorker() {
   useEffect(() => {
     const s = getWorkerSession();
     if (!s) {
+      clearWorkerSession();
       navigate({ to: "/worker-login" });
       return;
     }

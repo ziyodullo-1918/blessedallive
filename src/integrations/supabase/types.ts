@@ -38,6 +38,7 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          name: string | null
           start_date: string
           status: string
         }
@@ -46,6 +47,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          name?: string | null
           start_date: string
           status?: string
         }
@@ -54,6 +56,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          name?: string | null
           start_date?: string
           status?: string
         }
@@ -158,7 +161,35 @@ export type Database = {
             referencedRelation: "workers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "work_entries_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers_safe"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      worker_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          token: string
+          worker_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          token?: string
+          worker_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          token?: string
+          worker_id?: string
+        }
+        Relationships: []
       }
       workers: {
         Row: {
@@ -189,7 +220,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      workers_safe: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          worker_code: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          worker_code?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          worker_code?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_update_entry: {
@@ -212,9 +266,12 @@ export type Database = {
         Returns: string
       }
       claim_first_admin: { Args: never; Returns: undefined }
-      close_current_period: { Args: { _end_date?: string }; Returns: string }
+      close_current_period: {
+        Args: { _end_date?: string; _next_start?: string }
+        Returns: string
+      }
       delete_my_entry: {
-        Args: { _entry_id: string; _pin: string; _worker_id: string }
+        Args: { _entry_id: string; _token: string }
         Returns: undefined
       }
       get_current_period: {
@@ -225,7 +282,7 @@ export type Database = {
         }[]
       }
       get_my_entries: {
-        Args: { _pin: string; _worker_id: string }
+        Args: { _period_id?: string; _token: string }
         Returns: {
           category_name: string
           created_at: string
@@ -237,6 +294,16 @@ export type Database = {
           work_date: string
         }[]
       }
+      get_my_periods: {
+        Args: { _token: string }
+        Returns: {
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+          status: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -244,24 +311,28 @@ export type Database = {
         }
         Returns: boolean
       }
+      period_auto_name: { Args: { _d: string }; Returns: string }
       submit_work_entry: {
         Args: {
-          _pin: string
           _product_id: string
           _quantity: number
+          _token: string
           _work_date: string
-          _worker_id: string
         }
         Returns: string
       }
       worker_login: {
         Args: { _code: string; _pin: string }
         Returns: {
+          expires_at: string
           id: string
           name: string
+          session_token: string
           worker_code: string
         }[]
       }
+      worker_logout: { Args: { _token: string }; Returns: undefined }
+      worker_session_check: { Args: { _token: string }; Returns: string }
     }
     Enums: {
       app_role: "admin"

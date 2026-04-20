@@ -37,7 +37,8 @@ function WorkerLogin() {
         id: row.id,
         worker_code: row.worker_code,
         name: row.name,
-        pin: pin.trim(),
+        token: row.session_token,
+        expires_at: row.expires_at,
       });
       toast.success(`${t.hello}, ${row.name}`);
       navigate({ to: "/worker" });
