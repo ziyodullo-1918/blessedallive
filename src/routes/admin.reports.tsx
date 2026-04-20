@@ -33,6 +33,7 @@ type Row = {
 
 type Period = {
   id: string;
+  name: string | null;
   start_date: string;
   end_date: string | null;
   status: string;
@@ -52,7 +53,7 @@ function ReportsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("periods")
-        .select("id, start_date, end_date, status, closed_at")
+        .select("id, name, start_date, end_date, status, closed_at")
         .order("start_date", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Period[];
@@ -242,14 +243,21 @@ function ReportsPage() {
     }
   };
 
+  const [closeEndDate, setCloseEndDate] = useState(todayStr());
+  const [closeNextStart, setCloseNextStart] = useState("");
+
   const closePeriod = async () => {
-    const { error } = await supabase.rpc("close_current_period", { _end_date: todayStr() });
+    const { error } = await supabase.rpc("close_current_period", {
+      _end_date: closeEndDate,
+      _next_start: closeNextStart || (undefined as any),
+    });
     if (error) {
       toast.error(error.message);
       return;
     }
     toast.success(t.periodClosed);
     setCloseOpen(false);
+    setCloseNextStart("");
     qc.invalidateQueries({ queryKey: ["periods"] });
     qc.invalidateQueries({ queryKey: ["report"] });
   };
@@ -297,13 +305,15 @@ function ReportsPage() {
           <Select value={selectedPeriodId} onValueChange={setSelectedPeriodId}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__current__">{t.currentPeriod}</SelectItem>
+              <SelectItem value="__current__">
+                {t.currentPeriod}{currentPeriod?.name ? ` — ${currentPeriod.name}` : ""}
+              </SelectItem>
               <SelectItem value="__custom__">{t.customRange}</SelectItem>
               {(periods ?? [])
                 .filter((p) => p.status === "closed")
                 .map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.start_date} → {p.end_date}
+                    {p.name ?? `${p.start_date} → ${p.end_date}`}
                   </SelectItem>
                 ))}
             </SelectContent>
