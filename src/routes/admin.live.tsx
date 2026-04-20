@@ -71,6 +71,8 @@ function LivePage() {
       (await supabase.from("products").select("id, name").order("name")).data ?? [],
   });
 
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+
   const { data: rows, isLoading } = useQuery({
     enabled: !!selectedPeriod,
     queryKey: ["live-entries", selectedPeriod?.id],
@@ -87,31 +89,33 @@ function LivePage() {
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
     },
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
   });
 
-  // Realtime: joriy davrdagi har qanday o'zgarishni eshitish
+  // Highlight new rows when polling brings them in
   useEffect(() => {
-    const ch = supabase
-      .channel("admin-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "work_entries" },
-        (payload) => {
-          qc.invalidateQueries({ queryKey: ["live-entries"] });
-          if (payload.eventType === "INSERT") {
-            const id = (payload.new as any)?.id as string;
-            if (id) {
-              setFlash(id);
-              setTimeout(() => setFlash((cur) => (cur === id ? null : cur)), 2400);
-            }
-          }
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [qc]);
+    if (!rows) return;
+    const next = new Set(seenIds);
+    let added = false;
+    const newOnes: string[] = [];
+    for (const r of rows) {
+      if (!next.has(r.id)) {
+        next.add(r.id);
+        newOnes.push(r.id);
+        added = true;
+      }
+    }
+    if (added) {
+      setSeenIds(next);
+      // Only flash if we already had a baseline (avoid flashing on first load)
+      if (seenIds.size > 0 && newOnes.length > 0) {
+        const id = newOnes[0];
+        setFlash(id);
+        setTimeout(() => setFlash((cur) => (cur === id ? null : cur)), 2400);
+      }
+    }
+  }, [rows]);
 
   const filtered = useMemo(() => {
     let list = rows ?? [];

@@ -38,6 +38,7 @@ function WorkerHome() {
       if (error) throw error;
       return (data ?? []) as Period[];
     },
+    refetchInterval: 10000,
   });
 
   const currentPeriod = useMemo(() => periods?.find((p) => p.status === "open"), [periods]);
@@ -57,31 +58,9 @@ function WorkerHome() {
       if (error) throw error;
       return (data ?? []) as Entry[];
     },
+    refetchInterval: 4000,
+    refetchOnWindowFocus: true,
   });
-
-  // Realtime: faqat joriy davr ko'rilayotganda yangilik
-  useEffect(() => {
-    if (!session) return;
-    const ch = supabase
-      .channel(`worker-${session.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "work_entries", filter: `worker_id=eq.${session.id}` },
-        () => qc.invalidateQueries({ queryKey: ["my-entries", session.id] }),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "periods" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["my-periods", session.id] });
-          qc.invalidateQueries({ queryKey: ["my-entries", session.id] });
-        },
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [session, qc]);
 
   const totalQty = (entries ?? []).reduce((s, e) => s + Number(e.quantity), 0);
   const totalSum = (entries ?? []).reduce((s, e) => s + Number(e.total), 0);
