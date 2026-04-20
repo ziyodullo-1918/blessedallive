@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { clearWorkerSession, getWorkerSession } from "@/lib/worker-session";
 import { Button } from "@/components/ui/button";
 import { LogOut, Menu, X } from "lucide-react";
 import { t } from "@/lib/i18n";
@@ -116,4 +117,12 @@ export function AppShell({
 
 export async function adminSignOut() {
   await supabase.auth.signOut();
+}
+
+export async function workerSignOut() {
+  const s = getWorkerSession();
+  if (s?.token) {
+    try { await supabase.rpc("worker_logout", { _token: s.token }); } catch {}
+  }
+  clearWorkerSession();
 }
