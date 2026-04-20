@@ -40,20 +40,25 @@ function LivePage() {
   const [editing, setEditing] = useState<Row | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
-  // Joriy davr boshlanish sanasi
-  const { data: currentPeriod } = useQuery({
-    queryKey: ["current-period"],
+  const [periodId, setPeriodId] = useState<string>("__current__");
+
+  // Davrlar ro'yxati
+  const { data: periods } = useQuery({
+    queryKey: ["periods-live"],
     queryFn: async () => {
       const { data } = await supabase
         .from("periods")
-        .select("id, start_date")
-        .eq("status", "open")
-        .order("start_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
+        .select("id, name, start_date, end_date, status")
+        .order("start_date", { ascending: false });
+      return data ?? [];
     },
   });
+
+  const currentPeriod = useMemo(() => periods?.find((p: any) => p.status === "open"), [periods]);
+  const selectedPeriod = useMemo(() => {
+    if (periodId === "__current__") return currentPeriod;
+    return periods?.find((p: any) => p.id === periodId);
+  }, [periodId, periods, currentPeriod]);
 
   const { data: workers } = useQuery({
     queryKey: ["workers-min"],
@@ -67,17 +72,18 @@ function LivePage() {
   });
 
   const { data: rows, isLoading } = useQuery({
-    enabled: !!currentPeriod,
-    queryKey: ["live-entries", currentPeriod?.start_date],
+    enabled: !!selectedPeriod,
+    queryKey: ["live-entries", selectedPeriod?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("work_entries")
         .select(
           "id, quantity, unit_price, total, work_date, worker_id, product_id, created_at, workers(name, worker_code), products(name, categories(name))",
         )
-        .gte("work_date", currentPeriod!.start_date)
+        .gte("work_date", (selectedPeriod as any)!.start_date)
+        .lte("work_date", (selectedPeriod as any)!.end_date ?? new Date().toISOString().slice(0, 10))
         .order("created_at", { ascending: false })
-        .limit(500);
+        .limit(1000);
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
     },
@@ -142,11 +148,13 @@ function LivePage() {
         title={t.liveFeed}
         subtitle={
           <span className="inline-flex items-center gap-1.5">
-            <Radio className="size-3 animate-pulse text-success" />
-            {t.liveUpdate}
-            {currentPeriod && (
+            {selectedPeriod?.status === "open" ? (
+              <Radio className="size-3 animate-pulse text-success" />
+            ) : null}
+            {selectedPeriod?.status === "open" ? t.liveUpdate : t.closed}
+            {selectedPeriod && (
               <span className="font-mono text-xs text-muted-foreground">
-                • {t.currentPeriod}: {currentPeriod.start_date}
+                • {(selectedPeriod as any).name ?? ""} • {(selectedPeriod as any).start_date} → {(selectedPeriod as any).end_date ?? "…"}
               </span>
             )}
           </span>
@@ -163,7 +171,25 @@ function LivePage() {
         <StatCard label={t.totalEntries} value={String(filtered.length)} accent="warning" />
       </div>
 
-      <div className="surface mt-4 mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-2">
+      <div className="surface mt-4 mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-3">
+        <div className="space-y-1">
+          <Label className="text-xs">{t.selectPeriod}</Label>
+          <Select value={periodId} onValueChange={setPeriodId}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__current__">
+                {t.currentPeriod}{currentPeriod ? ` — ${(currentPeriod as any).name ?? ""}` : ""}
+              </SelectItem>
+              {(periods ?? [])
+                .filter((p: any) => p.status === "closed")
+                .map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name ?? `${p.start_date} → ${p.end_date}`}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-1">
           <Label className="text-xs">{t.worker}</Label>
           <Select value={workerId} onValueChange={setWorkerId}>
