@@ -181,7 +181,7 @@ function LivePage() {
         <StatCard label={t.totalEntries} value={String(filtered.length)} accent="warning" />
       </div>
 
-      <div className="surface mt-4 mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-3">
+      <div className="surface mt-4 mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">
           <Label className="text-xs">{t.selectPeriod}</Label>
           <Select value={periodId} onValueChange={setPeriodId}>
@@ -199,6 +199,26 @@ function LivePage() {
                 ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">{t.from}</Label>
+          <Input
+            type="date"
+            value={dateFrom}
+            min={(selectedPeriod as any)?.start_date}
+            max={(selectedPeriod as any)?.end_date ?? undefined}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">{t.to}</Label>
+          <Input
+            type="date"
+            value={dateTo}
+            min={(selectedPeriod as any)?.start_date}
+            max={(selectedPeriod as any)?.end_date ?? undefined}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">{t.worker}</Label>
