@@ -1,7 +1,7 @@
 // Uzbek (Latin) strings for the production tracking app.
 export const t = {
-  appName: "Blessed Al",
-  appTagline: "Blessed Al — kunlik ishlab chiqarish va maosh hisobot tizimi",
+  appName: "Blessed Al Live",
+  appTagline: "Blessed Al Live — kunlik ishlab chiqarish va maosh hisobot tizimi",
 
   // Auth
   signIn: "Kirish",
