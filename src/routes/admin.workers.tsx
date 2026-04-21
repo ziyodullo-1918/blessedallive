@@ -23,7 +23,7 @@ function WorkersPage() {
   const { data: workers, isLoading } = useQuery({
     queryKey: ["workers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("workers").select("id, worker_code, name, active, created_at").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("workers_safe").select("id, worker_code, name, active, created_at").order("created_at", { ascending: false });
       if (error) throw error;
       return data as Worker[];
     },
