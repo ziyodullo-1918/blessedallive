@@ -77,15 +77,19 @@ function LivePage() {
 
   const { data: rows, isLoading } = useQuery({
     enabled: !!selectedPeriod,
-    queryKey: ["live-entries", selectedPeriod?.id],
+    queryKey: ["live-entries", selectedPeriod?.id, dateFrom, dateTo],
     queryFn: async () => {
+      const periodStart = (selectedPeriod as any)!.start_date;
+      const periodEnd = (selectedPeriod as any)!.end_date ?? new Date().toISOString().slice(0, 10);
+      const fromDate = dateFrom && dateFrom >= periodStart ? dateFrom : periodStart;
+      const toDate = dateTo && dateTo <= periodEnd ? dateTo : periodEnd;
       const { data, error } = await supabase
         .from("work_entries")
         .select(
           "id, quantity, unit_price, total, work_date, worker_id, product_id, created_at, workers(name, worker_code), products(name, categories(name))",
         )
-        .gte("work_date", (selectedPeriod as any)!.start_date)
-        .lte("work_date", (selectedPeriod as any)!.end_date ?? new Date().toISOString().slice(0, 10))
+        .gte("work_date", fromDate)
+        .lte("work_date", toDate)
         .order("created_at", { ascending: false })
         .limit(1000);
       if (error) throw error;
