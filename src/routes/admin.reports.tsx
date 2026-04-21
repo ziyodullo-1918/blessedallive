@@ -90,7 +90,7 @@ function ReportsPage() {
   const { data: workers } = useQuery({
     queryKey: ["workers-min"],
     queryFn: async () =>
-      (await supabase.from("workers").select("id, name, worker_code").order("name")).data ?? [],
+      (await supabase.from("workers_safe").select("id, name, worker_code").order("name")).data ?? [],
   });
   const { data: products } = useQuery({
     queryKey: ["products-min"],

@@ -41,6 +41,8 @@ function LivePage() {
   const [flash, setFlash] = useState<string | null>(null);
 
   const [periodId, setPeriodId] = useState<string>("__current__");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   // Davrlar ro'yxati
   const { data: periods } = useQuery({
@@ -63,7 +65,7 @@ function LivePage() {
   const { data: workers } = useQuery({
     queryKey: ["workers-min"],
     queryFn: async () =>
-      (await supabase.from("workers").select("id, name, worker_code").order("name")).data ?? [],
+      (await supabase.from("workers_safe").select("id, name, worker_code").order("name")).data ?? [],
   });
   const { data: products } = useQuery({
     queryKey: ["products-min"],
@@ -75,15 +77,19 @@ function LivePage() {
 
   const { data: rows, isLoading } = useQuery({
     enabled: !!selectedPeriod,
-    queryKey: ["live-entries", selectedPeriod?.id],
+    queryKey: ["live-entries", selectedPeriod?.id, dateFrom, dateTo],
     queryFn: async () => {
+      const periodStart = (selectedPeriod as any)!.start_date;
+      const periodEnd = (selectedPeriod as any)!.end_date ?? new Date().toISOString().slice(0, 10);
+      const fromDate = dateFrom && dateFrom >= periodStart ? dateFrom : periodStart;
+      const toDate = dateTo && dateTo <= periodEnd ? dateTo : periodEnd;
       const { data, error } = await supabase
         .from("work_entries")
         .select(
           "id, quantity, unit_price, total, work_date, worker_id, product_id, created_at, workers(name, worker_code), products(name, categories(name))",
         )
-        .gte("work_date", (selectedPeriod as any)!.start_date)
-        .lte("work_date", (selectedPeriod as any)!.end_date ?? new Date().toISOString().slice(0, 10))
+        .gte("work_date", fromDate)
+        .lte("work_date", toDate)
         .order("created_at", { ascending: false })
         .limit(1000);
       if (error) throw error;
@@ -175,7 +181,7 @@ function LivePage() {
         <StatCard label={t.totalEntries} value={String(filtered.length)} accent="warning" />
       </div>
 
-      <div className="surface mt-4 mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-3">
+      <div className="surface mt-4 mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">
           <Label className="text-xs">{t.selectPeriod}</Label>
           <Select value={periodId} onValueChange={setPeriodId}>
@@ -193,6 +199,26 @@ function LivePage() {
                 ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">{t.from}</Label>
+          <Input
+            type="date"
+            value={dateFrom}
+            min={(selectedPeriod as any)?.start_date}
+            max={(selectedPeriod as any)?.end_date ?? undefined}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">{t.to}</Label>
+          <Input
+            type="date"
+            value={dateTo}
+            min={(selectedPeriod as any)?.start_date}
+            max={(selectedPeriod as any)?.end_date ?? undefined}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">{t.worker}</Label>
