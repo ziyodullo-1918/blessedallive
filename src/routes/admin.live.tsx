@@ -41,6 +41,8 @@ function LivePage() {
   const [flash, setFlash] = useState<string | null>(null);
 
   const [periodId, setPeriodId] = useState<string>("__current__");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   // Davrlar ro'yxati
   const { data: periods } = useQuery({
@@ -63,7 +65,7 @@ function LivePage() {
   const { data: workers } = useQuery({
     queryKey: ["workers-min"],
     queryFn: async () =>
-      (await supabase.from("workers").select("id, name, worker_code").order("name")).data ?? [],
+      (await supabase.from("workers_safe").select("id, name, worker_code").order("name")).data ?? [],
   });
   const { data: products } = useQuery({
     queryKey: ["products-min"],
