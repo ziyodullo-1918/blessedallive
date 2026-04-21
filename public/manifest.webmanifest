@@ -1,7 +1,7 @@
 {
-  "name": "Ishlab Chiqarish",
-  "short_name": "Ishlab Chiqarish",
-  "description": "Kichik ishlab chiqarish biznesi uchun kunlik hisobot tizimi.",
+  "name": "Blessed Al Live",
+  "short_name": "Blessed Al Live",
+  "description": "Blessed Al Live — kichik ishlab chiqarish biznesi uchun kunlik hisobot tizimi.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
