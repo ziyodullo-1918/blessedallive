@@ -3,9 +3,10 @@ import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { clearWorkerSession, getWorkerSession } from "@/lib/worker-session";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogOut, Menu, X, Moon, Sun } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/hooks/use-theme";
 
 type NavItem = { to: string; label: string };
 
@@ -23,6 +24,7 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const { theme, toggle } = useTheme();
 
   useEffect(() => setOpen(false), [path]);
 
@@ -58,6 +60,15 @@ export function AppShell({
           </nav>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggle}
+              aria-label="toggle theme"
+              title={theme === "dark" ? "Light" : "Dark"}
+            >
+              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </Button>
             <Button
               variant="ghost"
               size="sm"
