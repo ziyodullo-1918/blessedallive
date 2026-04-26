@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { formatMoney, t } from "@/lib/i18n";
 import { Pencil, Plus, Trash2, Tag, Box } from "lucide-react";
@@ -52,6 +53,17 @@ function ProductsPage() {
     else {
       toast.success(t.deleted);
       qc.invalidateQueries({ queryKey: ["products"] });
+    }
+  };
+
+  const onToggleActive = async (p: Product, next: boolean) => {
+    const { error } = await supabase.from("products").update({ active: next }).eq("id", p.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(t.saved);
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["products-active"] });
+      qc.invalidateQueries({ queryKey: ["products-min"] });
     }
   };
 
@@ -103,6 +115,7 @@ function ProductsPage() {
                 <th className="px-3 py-2.5">{t.productName}</th>
                 <th className="px-3 py-2.5">{t.category}</th>
                 <th className="px-3 py-2.5 text-right">{t.pricePerUnit}</th>
+                <th className="px-3 py-2.5 text-center">{t.active}</th>
                 <th className="px-3 py-2.5 text-right">…</th>
               </tr>
             </thead>
@@ -114,6 +127,18 @@ function ProductsPage() {
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">{p.categories?.name ?? "—"}</td>
                   <td className="px-3 py-2.5 text-right font-mono">{formatMoney(Number(p.price))}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center justify-center gap-2">
+                      <Switch
+                        checked={p.active}
+                        onCheckedChange={(v) => onToggleActive(p, v)}
+                        aria-label={p.active ? t.active : t.inactive}
+                      />
+                      <span className={`text-xs ${p.active ? "text-primary" : "text-muted-foreground"}`}>
+                        {p.active ? t.active : t.inactive}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-3 py-2.5">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="size-4" /></Button>
