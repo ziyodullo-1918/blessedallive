@@ -183,6 +183,7 @@ function ProductDialog({
   const [name, setName] = useState(editing?.name ?? "");
   const [price, setPrice] = useState<string>(editing ? String(editing.price) : "");
   const [categoryId, setCategoryId] = useState<string>(editing?.category_id ?? "__none__");
+  const [active, setActive] = useState<boolean>(editing?.active ?? true);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,7 +191,7 @@ function ProductDialog({
       name: name.trim(),
       price: Number(price),
       category_id: categoryId === "__none__" ? null : categoryId,
-      active: true,
+      active,
     };
     const { error } = editing
       ? await supabase.from("products").update(payload).eq("id", editing.id)
@@ -220,6 +221,15 @@ function ProductDialog({
         <div className="space-y-1.5">
           <Label>{t.pricePerUnit}</Label>
           <Input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="1000" />
+        </div>
+        <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-3 py-2">
+          <div>
+            <Label className="text-sm">{t.active}</Label>
+            <p className="text-xs text-muted-foreground">
+              {active ? t.active : t.inactive}
+            </p>
+          </div>
+          <Switch checked={active} onCheckedChange={setActive} />
         </div>
         <DialogFooter><Button type="submit">{t.save}</Button></DialogFooter>
       </form>
