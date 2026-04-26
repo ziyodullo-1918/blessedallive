@@ -95,7 +95,7 @@ function ReportsPage() {
   const { data: products } = useQuery({
     queryKey: ["products-min"],
     queryFn: async () =>
-      (await supabase.from("products").select("id, name").order("name")).data ?? [],
+      (await supabase.from("products").select("id, name").eq("active", true).order("name")).data ?? [],
   });
 
   const { data: rows, isLoading } = useQuery({

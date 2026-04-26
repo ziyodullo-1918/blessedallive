@@ -70,7 +70,7 @@ function LivePage() {
   const { data: products } = useQuery({
     queryKey: ["products-min"],
     queryFn: async () =>
-      (await supabase.from("products").select("id, name").order("name")).data ?? [],
+      (await supabase.from("products").select("id, name").eq("active", true).order("name")).data ?? [],
   });
 
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());

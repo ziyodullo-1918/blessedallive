@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { formatMoney, t } from "@/lib/i18n";
 import { Pencil, Plus, Trash2, Tag, Box } from "lucide-react";
@@ -52,6 +53,17 @@ function ProductsPage() {
     else {
       toast.success(t.deleted);
       qc.invalidateQueries({ queryKey: ["products"] });
+    }
+  };
+
+  const onToggleActive = async (p: Product, next: boolean) => {
+    const { error } = await supabase.from("products").update({ active: next }).eq("id", p.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(t.saved);
+      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["products-active"] });
+      qc.invalidateQueries({ queryKey: ["products-min"] });
     }
   };
 
@@ -103,6 +115,7 @@ function ProductsPage() {
                 <th className="px-3 py-2.5">{t.productName}</th>
                 <th className="px-3 py-2.5">{t.category}</th>
                 <th className="px-3 py-2.5 text-right">{t.pricePerUnit}</th>
+                <th className="px-3 py-2.5 text-center">{t.active}</th>
                 <th className="px-3 py-2.5 text-right">…</th>
               </tr>
             </thead>
@@ -114,6 +127,18 @@ function ProductsPage() {
                   </td>
                   <td className="px-3 py-2.5 text-muted-foreground">{p.categories?.name ?? "—"}</td>
                   <td className="px-3 py-2.5 text-right font-mono">{formatMoney(Number(p.price))}</td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center justify-center gap-2">
+                      <Switch
+                        checked={p.active}
+                        onCheckedChange={(v) => onToggleActive(p, v)}
+                        aria-label={p.active ? t.active : t.inactive}
+                      />
+                      <span className={`text-xs ${p.active ? "text-primary" : "text-muted-foreground"}`}>
+                        {p.active ? t.active : t.inactive}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-3 py-2.5">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="size-4" /></Button>
@@ -158,6 +183,7 @@ function ProductDialog({
   const [name, setName] = useState(editing?.name ?? "");
   const [price, setPrice] = useState<string>(editing ? String(editing.price) : "");
   const [categoryId, setCategoryId] = useState<string>(editing?.category_id ?? "__none__");
+  const [active, setActive] = useState<boolean>(editing?.active ?? true);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -165,7 +191,7 @@ function ProductDialog({
       name: name.trim(),
       price: Number(price),
       category_id: categoryId === "__none__" ? null : categoryId,
-      active: true,
+      active,
     };
     const { error } = editing
       ? await supabase.from("products").update(payload).eq("id", editing.id)
@@ -195,6 +221,15 @@ function ProductDialog({
         <div className="space-y-1.5">
           <Label>{t.pricePerUnit}</Label>
           <Input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required placeholder="1000" />
+        </div>
+        <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-3 py-2">
+          <div>
+            <Label className="text-sm">{t.active}</Label>
+            <p className="text-xs text-muted-foreground">
+              {active ? t.active : t.inactive}
+            </p>
+          </div>
+          <Switch checked={active} onCheckedChange={setActive} />
         </div>
         <DialogFooter><Button type="submit">{t.save}</Button></DialogFooter>
       </form>
