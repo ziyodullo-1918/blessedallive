@@ -526,8 +526,13 @@ function ReportsPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">{t.nextStartDate}</Label>
-              <Input type="date" value={closeNextStart} onChange={(e) => setCloseNextStart(e.target.value)} placeholder={t.autoNext} />
-              <div className="text-[11px] text-muted-foreground">{t.autoNext}</div>
+              <Input
+                type="date"
+                value={closeNextStart}
+                min={closeEndDate || undefined}
+                onChange={(e) => setCloseNextStart(e.target.value)}
+                required
+              />
             </div>
           </div>
           <DialogFooter>
