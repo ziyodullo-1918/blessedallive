@@ -245,8 +245,17 @@ function ReportsPage() {
 
   const [closeEndDate, setCloseEndDate] = useState(todayStr());
   const [closeNextStart, setCloseNextStart] = useState("");
+  const [currentStartDate, setCurrentStartDate] = useState("");
+
+  useEffect(() => {
+    if (currentPeriod) setCurrentStartDate(currentPeriod.start_date);
+  }, [currentPeriod]);
 
   const closePeriod = async () => {
+    if (!currentPeriod || !currentStartDate) {
+      toast.error(t.error);
+      return;
+    }
     if (!closeEndDate) {
       toast.error(t.error);
       return;
@@ -255,9 +264,23 @@ function ReportsPage() {
       toast.error(t.error);
       return;
     }
+    if (closeEndDate < currentStartDate) {
+      toast.error(t.error);
+      return;
+    }
     if (closeNextStart <= closeEndDate) {
       toast.error(t.error);
       return;
+    }
+    if (currentStartDate !== currentPeriod.start_date) {
+      const { error: updateError } = await supabase
+        .from("periods")
+        .update({ start_date: currentStartDate })
+        .eq("id", currentPeriod.id);
+      if (updateError) {
+        toast.error(updateError.message);
+        return;
+      }
     }
     const { error } = await supabase.rpc("close_current_period", {
       _end_date: closeEndDate,
@@ -517,9 +540,17 @@ function ReportsPage() {
           <div className="space-y-3">
             {currentPeriod && (
               <div className="rounded-md border border-border bg-accent/30 p-3 text-xs font-mono">
-                {currentPeriod.name ?? ""} • {currentPeriod.start_date} → …
+                {currentPeriod.name ?? ""} • {currentStartDate || currentPeriod.start_date} → …
               </div>
             )}
+            <div className="space-y-1">
+              <Label className="text-xs">Joriy davr boshlanishi</Label>
+              <Input
+                type="date"
+                value={currentStartDate}
+                onChange={(e) => setCurrentStartDate(e.target.value)}
+              />
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">{t.endDate}</Label>
               <Input type="date" value={closeEndDate} onChange={(e) => setCloseEndDate(e.target.value)} />
