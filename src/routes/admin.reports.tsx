@@ -247,9 +247,21 @@ function ReportsPage() {
   const [closeNextStart, setCloseNextStart] = useState("");
 
   const closePeriod = async () => {
+    if (!closeEndDate) {
+      toast.error(t.error);
+      return;
+    }
+    if (!closeNextStart) {
+      toast.error(t.error);
+      return;
+    }
+    if (closeNextStart <= closeEndDate) {
+      toast.error(t.error);
+      return;
+    }
     const { error } = await supabase.rpc("close_current_period", {
       _end_date: closeEndDate,
-      _next_start: closeNextStart || (undefined as any),
+      _next_start: closeNextStart,
     });
     if (error) {
       toast.error(error.message);
