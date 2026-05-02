@@ -25,6 +25,26 @@ function NewEntry() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
 
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: currentPeriod } = useQuery({
+    queryKey: ["current-period-open"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("periods")
+        .select("start_date, end_date, status")
+        .eq("status", "open")
+        .order("start_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { start_date: string; end_date: string | null; status: string } | null;
+    },
+  });
+
+  const minDate = currentPeriod?.start_date ?? undefined;
+  const maxDate = today;
+
   const { data: products } = useQuery({
     queryKey: ["products-active"],
     queryFn: async () => {
@@ -45,6 +65,14 @@ function NewEntry() {
     e.preventDefault();
     if (!session) return;
     if (!productId) { toast.error(t.selectProduct); return; }
+    if (date > today) {
+      toast.error("Kelajakdagi sana kiritib bo'lmaydi");
+      return;
+    }
+    if (minDate && date < minDate) {
+      toast.error(`Sana joriy davr boshlanishidan (${minDate}) oldin bo'lishi mumkin emas`);
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.rpc("submit_work_entry", {
       _token: session.token,
@@ -87,7 +115,19 @@ function NewEntry() {
             </div>
             <div className="space-y-1.5">
               <Label>{t.date}</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <Input
+                type="date"
+                value={date}
+                min={minDate}
+                max={maxDate}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+              {currentPeriod && (
+                <p className="text-xs text-muted-foreground">
+                  Joriy davr: {currentPeriod.start_date} → bugun ({today})
+                </p>
+              )}
             </div>
           </div>
 
