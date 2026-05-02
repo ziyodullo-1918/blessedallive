@@ -247,9 +247,21 @@ function ReportsPage() {
   const [closeNextStart, setCloseNextStart] = useState("");
 
   const closePeriod = async () => {
+    if (!closeEndDate) {
+      toast.error(t.error);
+      return;
+    }
+    if (!closeNextStart) {
+      toast.error(t.error);
+      return;
+    }
+    if (closeNextStart <= closeEndDate) {
+      toast.error(t.error);
+      return;
+    }
     const { error } = await supabase.rpc("close_current_period", {
       _end_date: closeEndDate,
-      _next_start: closeNextStart || (undefined as any),
+      _next_start: closeNextStart,
     });
     if (error) {
       toast.error(error.message);
@@ -514,8 +526,13 @@ function ReportsPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">{t.nextStartDate}</Label>
-              <Input type="date" value={closeNextStart} onChange={(e) => setCloseNextStart(e.target.value)} placeholder={t.autoNext} />
-              <div className="text-[11px] text-muted-foreground">{t.autoNext}</div>
+              <Input
+                type="date"
+                value={closeNextStart}
+                min={closeEndDate || undefined}
+                onChange={(e) => setCloseNextStart(e.target.value)}
+                required
+              />
             </div>
           </div>
           <DialogFooter>
