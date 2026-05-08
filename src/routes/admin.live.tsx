@@ -142,6 +142,25 @@ function LivePage() {
   const totalToday = todayRows.reduce((s, r) => s + Number(r.total), 0);
   const totalQtyToday = todayRows.reduce((s, r) => s + Number(r.quantity), 0);
 
+  // Today's totals grouped by worker
+  const todayByWorker = useMemo(() => {
+    const m = new Map<string, { worker_id: string; name: string; worker_code: string; qty: number; total: number; entries: number }>();
+    for (const r of todayRows) {
+      const id = r.worker_id;
+      const cur = m.get(id) ?? {
+        worker_id: id,
+        name: r.workers?.name ?? "—",
+        worker_code: r.workers?.worker_code ?? "",
+        qty: 0, total: 0, entries: 0,
+      };
+      cur.qty += Number(r.quantity);
+      cur.total += Number(r.total);
+      cur.entries += 1;
+      m.set(id, cur);
+    }
+    return [...m.values()].sort((a, b) => b.total - a.total);
+  }, [todayRows]);
+
   const onDelete = async (r: Row) => {
     if (!confirm(`${t.delete}?`)) return;
     const { error } = await supabase.from("work_entries").delete().eq("id", r.id);
@@ -180,6 +199,31 @@ function LivePage() {
         />
         <StatCard label={t.totalEntries} value={String(filtered.length)} accent="warning" />
       </div>
+
+      {todayByWorker.length > 0 && (
+        <div className="surface mt-4 rounded-xl border border-border">
+          <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+            <div className="font-semibold">{t.todayTotalsByWorker}</div>
+            <div className="font-mono text-xs text-muted-foreground">{todayStr}</div>
+          </div>
+          <ul className="divide-y divide-border/60">
+            {todayByWorker.map((w) => (
+              <li key={w.worker_id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-semibold">{w.name}</span>
+                    <span className="font-mono text-xs text-muted-foreground">#{w.worker_code}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {w.entries} {t.records.toLowerCase()} • {formatNumber(w.qty)} {t.units}
+                  </div>
+                </div>
+                <div className="font-mono font-semibold text-primary">{formatMoney(w.total)}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="surface mt-4 mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">
