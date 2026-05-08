@@ -11,9 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { Pencil, Plus, Trash2, UserCog } from "lucide-react";
+import { PinGate } from "@/components/pin-gate";
 
 export const Route = createFileRoute("/admin/workers")({
-  component: WorkersPage,
+  component: () => (<PinGate><WorkersPage /></PinGate>),
 });
 
 type Worker = { id: string; worker_code: string; name: string; active: boolean; created_at: string };
