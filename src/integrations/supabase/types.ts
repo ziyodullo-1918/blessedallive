@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -312,6 +330,10 @@ export type Database = {
         Returns: boolean
       }
       period_auto_name: { Args: { _d: string }; Returns: string }
+      set_admin_pin: {
+        Args: { _new_pin: string; _old_pin: string }
+        Returns: undefined
+      }
       submit_work_entry: {
         Args: {
           _product_id: string
@@ -321,6 +343,7 @@ export type Database = {
         }
         Returns: string
       }
+      verify_admin_pin: { Args: { _pin: string }; Returns: boolean }
       worker_login: {
         Args: { _code: string; _pin: string }
         Returns: {

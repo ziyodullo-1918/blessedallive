@@ -12,9 +12,10 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { formatMoney, t } from "@/lib/i18n";
 import { Pencil, Plus, Trash2, Tag, Box } from "lucide-react";
+import { PinGate } from "@/components/pin-gate";
 
 export const Route = createFileRoute("/admin/products")({
-  component: ProductsPage,
+  component: () => (<PinGate><ProductsPage /></PinGate>),
 });
 
 type Cat = { id: string; name: string };
