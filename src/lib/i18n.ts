@@ -51,6 +51,25 @@ export const t = {
   selectCategory: "Kategoriya tanlang",
   noCategory: "Kategoriyasiz",
 
+  // Settings & PIN
+  settings: "Sozlamalar",
+  adminPin: "Admin PIN-kod",
+  enterPin: "PIN-kodni kiriting",
+  oldPin: "Eski PIN",
+  newPin2: "Yangi PIN",
+  confirmNewPin: "Yangi PIN (takror)",
+  changePin: "PIN-kodni o‘zgartirish",
+  pinChanged: "PIN-kod yangilandi",
+  pinMismatch: "PIN-kodlar mos emas",
+  pinTooShort: "PIN kamida 4 ta belgidan iborat bo‘lsin",
+  invalidOldPin: "Eski PIN noto‘g‘ri",
+  pinLocked: "Bu bo‘lim PIN-kod bilan himoyalangan",
+  unlock: "Ochish",
+  lock: "Yopish",
+  editCategory: "Kategoriyani tahrirlash",
+  categoryHint: "Masalan: Qish, Bahor, Yoz, Kuz yoki mavsumiy kolleksiya",
+  todayTotalsByWorker: "Bugungi hodimlar yakuni",
+
   // Work entries
   selectProduct: "Mahsulot tanlang",
   quantity: "Miqdor",
