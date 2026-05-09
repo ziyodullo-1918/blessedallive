@@ -209,43 +209,6 @@ function LivePage() {
         <StatCard label={t.totalEntries} value={String(filtered.length)} accent="warning" />
       </div>
 
-      {todayByWorker.length > 0 && (
-        <div className="surface mt-4 rounded-xl border border-border">
-          <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-            <div className="font-semibold">{t.todayTotalsByWorker}</div>
-            <div className="font-mono text-xs text-muted-foreground">{todayStr}</div>
-          </div>
-          <ul className="divide-y divide-border/60">
-            {todayByWorker.map((w) => (
-              <li key={w.worker_id} className="px-4 py-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-semibold">{w.name}</span>
-                      <span className="font-mono text-xs text-muted-foreground">#{w.worker_code}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {w.entries} {t.records.toLowerCase()} • {formatNumber(w.qty)} {t.units}
-                    </div>
-                  </div>
-                  <div className="font-mono font-semibold text-primary">{formatMoney(w.total)}</div>
-                </div>
-                <ul className="mt-2 space-y-1 border-l-2 border-border/60 pl-3 text-xs">
-                  {w.productList.map((p, i) => (
-                    <li key={i} className="flex items-center justify-between gap-2 text-muted-foreground">
-                      <span className="truncate">{p.name}</span>
-                      <span className="font-mono">
-                        {formatNumber(p.qty)} {t.units} · <span className="text-foreground">{formatMoney(p.total)}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <div className="surface mt-4 mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">
           <Label className="text-xs">{t.selectPeriod}</Label>
