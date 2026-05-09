@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { formatMoney, t } from "@/lib/i18n";
-import { Pencil, Plus, Trash2, Tag, Box } from "lucide-react";
+import { Pencil, Plus, Trash2, Tag, Box, X } from "lucide-react";
 import { PinGate } from "@/components/pin-gate";
 
 export const Route = createFileRoute("/admin/products")({
@@ -45,6 +45,7 @@ function ProductsPage() {
 
   const [open, setOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
+  const [editingCat, setEditingCat] = useState<Cat | null>(null);
   const [editing, setEditing] = useState<Product | null>(null);
 
   const onDelete = async (p: Product) => {
@@ -68,17 +69,24 @@ function ProductsPage() {
     }
   };
 
+  const onDeleteCat = async (c: Cat) => {
+    if (!confirm(`${t.delete}: ${c.name}?`)) return;
+    const { error } = await supabase.from("categories").delete().eq("id", c.id);
+    if (error) toast.error(error.message);
+    else { toast.success(t.deleted); qc.invalidateQueries({ queryKey: ["categories"] }); }
+  };
+
   return (
     <>
       <PageHeader
         title={t.products}
         actions={
           <>
-            <Dialog open={catOpen} onOpenChange={setCatOpen}>
+            <Dialog open={catOpen} onOpenChange={(o) => { setCatOpen(o); if (!o) setEditingCat(null); }}>
               <DialogTrigger asChild>
-                <Button variant="secondary"><Tag className="size-4" /> {t.addCategory}</Button>
+                <Button variant="secondary" onClick={() => setEditingCat(null)}><Tag className="size-4" /> {t.addCategory}</Button>
               </DialogTrigger>
-              <CategoryDialog onDone={() => { setCatOpen(false); qc.invalidateQueries({ queryKey: ["categories"] }); }} />
+              <CategoryDialog editing={editingCat} onDone={() => { setCatOpen(false); setEditingCat(null); qc.invalidateQueries({ queryKey: ["categories"] }); }} />
             </Dialog>
             <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
               <DialogTrigger asChild>
@@ -97,8 +105,12 @@ function ProductsPage() {
       {(cats?.length ?? 0) > 0 && (
         <div className="mb-4 flex flex-wrap gap-2">
           {cats!.map((c) => (
-            <span key={c.id} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 py-1 text-xs">
-              <Tag className="size-3 text-primary" /> {c.name}
+            <span key={c.id} className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 py-1 pl-3 pr-1 text-xs">
+              <Tag className="size-3 text-primary" />
+              <button type="button" className="hover:underline" onClick={() => { setEditingCat(c); setCatOpen(true); }}>{c.name}</button>
+              <button type="button" className="ml-1 rounded-full p-0.5 text-muted-foreground hover:bg-destructive/20 hover:text-destructive" onClick={() => onDeleteCat(c)} aria-label={t.delete}>
+                <X className="size-3" />
+              </button>
             </span>
           ))}
         </div>
@@ -156,17 +168,21 @@ function ProductsPage() {
   );
 }
 
-function CategoryDialog({ onDone }: { onDone: () => void }) {
-  const [name, setName] = useState("");
+function CategoryDialog({ editing, onDone }: { editing: Cat | null; onDone: () => void }) {
+  const [name, setName] = useState(editing?.name ?? "");
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from("categories").insert({ name: name.trim() });
+    const n = name.trim();
+    if (!n) return;
+    const { error } = editing
+      ? await supabase.from("categories").update({ name: n }).eq("id", editing.id)
+      : await supabase.from("categories").insert({ name: n });
     if (error) toast.error(error.message);
     else { toast.success(t.saved); onDone(); }
   };
   return (
     <DialogContent>
-      <DialogHeader><DialogTitle>{t.addCategory}</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>{editing ? (t.editCategory ?? t.edit) : t.addCategory}</DialogTitle></DialogHeader>
       <form onSubmit={submit} className="space-y-3">
         <div className="space-y-1.5">
           <Label>{t.category}</Label>

@@ -15,9 +15,10 @@ import {
 import { formatMoney, formatNumber, t } from "@/lib/i18n";
 import { Pencil, Trash2, Radio, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { PinGate } from "@/components/pin-gate";
 
 export const Route = createFileRoute("/admin/live")({
-  component: LivePage,
+  component: () => (<PinGate><LivePage /></PinGate>),
 });
 
 type Row = {
@@ -142,33 +143,6 @@ function LivePage() {
   const totalToday = todayRows.reduce((s, r) => s + Number(r.total), 0);
   const totalQtyToday = todayRows.reduce((s, r) => s + Number(r.quantity), 0);
 
-  // Today's totals grouped by worker
-  const todayByWorker = useMemo(() => {
-    const m = new Map<string, { worker_id: string; name: string; worker_code: string; qty: number; total: number; entries: number; products: Map<string, { name: string; qty: number; total: number }> }>();
-    for (const r of todayRows) {
-      const id = r.worker_id;
-      const cur = m.get(id) ?? {
-        worker_id: id,
-        name: r.workers?.name ?? "—",
-        worker_code: r.workers?.worker_code ?? "",
-        qty: 0, total: 0, entries: 0, products: new Map(),
-      };
-      cur.qty += Number(r.quantity);
-      cur.total += Number(r.total);
-      cur.entries += 1;
-      const pname = r.products?.name ?? "—";
-      const pkey = r.product_id;
-      const pcur = cur.products.get(pkey) ?? { name: pname, qty: 0, total: 0 };
-      pcur.qty += Number(r.quantity);
-      pcur.total += Number(r.total);
-      cur.products.set(pkey, pcur);
-      m.set(id, cur);
-    }
-    return [...m.values()]
-      .map((w) => ({ ...w, productList: [...w.products.values()].sort((a, b) => b.total - a.total) }))
-      .sort((a, b) => b.total - a.total);
-  }, [todayRows]);
-
   const onDelete = async (r: Row) => {
     if (!confirm(`${t.delete}?`)) return;
     const { error } = await supabase.from("work_entries").delete().eq("id", r.id);
@@ -207,43 +181,6 @@ function LivePage() {
         />
         <StatCard label={t.totalEntries} value={String(filtered.length)} accent="warning" />
       </div>
-
-      {todayByWorker.length > 0 && (
-        <div className="surface mt-4 rounded-xl border border-border">
-          <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
-            <div className="font-semibold">{t.todayTotalsByWorker}</div>
-            <div className="font-mono text-xs text-muted-foreground">{todayStr}</div>
-          </div>
-          <ul className="divide-y divide-border/60">
-            {todayByWorker.map((w) => (
-              <li key={w.worker_id} className="px-4 py-2.5">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-semibold">{w.name}</span>
-                      <span className="font-mono text-xs text-muted-foreground">#{w.worker_code}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {w.entries} {t.records.toLowerCase()} • {formatNumber(w.qty)} {t.units}
-                    </div>
-                  </div>
-                  <div className="font-mono font-semibold text-primary">{formatMoney(w.total)}</div>
-                </div>
-                <ul className="mt-2 space-y-1 border-l-2 border-border/60 pl-3 text-xs">
-                  {w.productList.map((p, i) => (
-                    <li key={i} className="flex items-center justify-between gap-2 text-muted-foreground">
-                      <span className="truncate">{p.name}</span>
-                      <span className="font-mono">
-                        {formatNumber(p.qty)} {t.units} · <span className="text-foreground">{formatMoney(p.total)}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       <div className="surface mt-4 mb-4 grid gap-3 rounded-xl border border-border p-3 md:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">

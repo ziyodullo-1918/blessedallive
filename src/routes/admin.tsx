@@ -34,7 +34,6 @@ function AdminLayout() {
         { to: "/admin/live", label: t.liveFeed },
         { to: "/admin/workers", label: t.workers },
         { to: "/admin/products", label: t.products },
-        { to: "/admin/categories", label: t.categories },
         { to: "/admin/reports", label: t.reports },
         { to: "/admin/settings", label: t.settings },
       ]}
