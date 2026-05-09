@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, StatCard } from "@/components/page-header";
-import { formatMoney, formatNumber, monthName, t } from "@/lib/i18n";
+import { formatMoney, formatNumber, t } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
@@ -20,12 +20,6 @@ type Entry = {
   workers: { name: string } | null;
   products: { name: string } | null;
 };
-
-function monthRange(d = new Date()) {
-  const start = new Date(d.getFullYear(), d.getMonth(), 1);
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
-}
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
