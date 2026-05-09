@@ -143,33 +143,6 @@ function LivePage() {
   const totalToday = todayRows.reduce((s, r) => s + Number(r.total), 0);
   const totalQtyToday = todayRows.reduce((s, r) => s + Number(r.quantity), 0);
 
-  // Today's totals grouped by worker
-  const todayByWorker = useMemo(() => {
-    const m = new Map<string, { worker_id: string; name: string; worker_code: string; qty: number; total: number; entries: number; products: Map<string, { name: string; qty: number; total: number }> }>();
-    for (const r of todayRows) {
-      const id = r.worker_id;
-      const cur = m.get(id) ?? {
-        worker_id: id,
-        name: r.workers?.name ?? "—",
-        worker_code: r.workers?.worker_code ?? "",
-        qty: 0, total: 0, entries: 0, products: new Map(),
-      };
-      cur.qty += Number(r.quantity);
-      cur.total += Number(r.total);
-      cur.entries += 1;
-      const pname = r.products?.name ?? "—";
-      const pkey = r.product_id;
-      const pcur = cur.products.get(pkey) ?? { name: pname, qty: 0, total: 0 };
-      pcur.qty += Number(r.quantity);
-      pcur.total += Number(r.total);
-      cur.products.set(pkey, pcur);
-      m.set(id, cur);
-    }
-    return [...m.values()]
-      .map((w) => ({ ...w, productList: [...w.products.values()].sort((a, b) => b.total - a.total) }))
-      .sort((a, b) => b.total - a.total);
-  }, [todayRows]);
-
   const onDelete = async (r: Row) => {
     if (!confirm(`${t.delete}?`)) return;
     const { error } = await supabase.from("work_entries").delete().eq("id", r.id);
