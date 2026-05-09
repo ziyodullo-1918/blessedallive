@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, StatCard } from "@/components/page-header";
-import { formatMoney, monthName, t } from "@/lib/i18n";
+import { formatMoney, formatNumber, monthName, t } from "@/lib/i18n";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 export const Route = createFileRoute("/admin/")({
@@ -31,6 +34,21 @@ function todayStr() {
 function AdminIndex() {
   const { start, end } = monthRange();
   const today = todayStr();
+  const [pickedDate, setPickedDate] = useState<string>(today);
+
+  const { data: currentPeriod } = useQuery({
+    queryKey: ["current-period-dash"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("periods")
+        .select("id, start_date, end_date, status")
+        .eq("status", "open")
+        .order("start_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
 
   const { data: monthData } = useQuery({
     queryKey: ["admin-month", start, end],
@@ -56,6 +74,44 @@ function AdminIndex() {
       return data ?? [];
     },
   });
+
+  const { data: dayData } = useQuery({
+    queryKey: ["admin-day", pickedDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("work_entries")
+        .select("id, quantity, total, worker_id, product_id, workers(name, worker_code), products(name)")
+        .eq("work_date", pickedDate);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const dayByWorker = useMemo(() => {
+    const m = new Map<string, { worker_id: string; name: string; worker_code: string; qty: number; total: number; entries: number; products: Map<string, { name: string; qty: number; total: number }> }>();
+    for (const r of dayData ?? []) {
+      const id = r.worker_id;
+      const cur = m.get(id) ?? {
+        worker_id: id,
+        name: r.workers?.name ?? "—",
+        worker_code: r.workers?.worker_code ?? "",
+        qty: 0, total: 0, entries: 0, products: new Map(),
+      };
+      cur.qty += Number(r.quantity);
+      cur.total += Number(r.total);
+      cur.entries += 1;
+      const pname = r.products?.name ?? "—";
+      const pkey = r.product_id;
+      const pcur = cur.products.get(pkey) ?? { name: pname, qty: 0, total: 0 };
+      pcur.qty += Number(r.quantity);
+      pcur.total += Number(r.total);
+      cur.products.set(pkey, pcur);
+      m.set(id, cur);
+    }
+    return [...m.values()]
+      .map((w) => ({ ...w, productList: [...w.products.values()].sort((a, b) => b.total - a.total) }))
+      .sort((a, b) => b.total - a.total);
+  }, [dayData]);
 
   const totalThisMonth = (monthData ?? []).reduce((s, e) => s + Number(e.total), 0);
   const totalToday = (todayData ?? []).reduce((s, e: any) => s + Number(e.total), 0);
@@ -148,33 +204,52 @@ function AdminIndex() {
         </div>
       </div>
 
-      <div className="mt-6 surface rounded-xl border border-border p-4">
-        <div className="mb-3 font-semibold">{t.todaySummary}</div>
-        {(todayData ?? []).length === 0 ? (
+      <div className="mt-6 surface rounded-xl border border-border">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+          <div className="font-semibold">{t.todayTotalsByWorker}</div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">{t.date}</Label>
+            <Input
+              type="date"
+              className="h-8 w-auto"
+              value={pickedDate}
+              min={currentPeriod?.start_date ?? undefined}
+              max={currentPeriod?.end_date ?? today}
+              onChange={(e) => setPickedDate(e.target.value)}
+            />
+          </div>
+        </div>
+        {dayByWorker.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">{t.noData}</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="px-2 py-2">{t.worker}</th>
-                  <th className="px-2 py-2">{t.product}</th>
-                  <th className="px-2 py-2 text-right">{t.quantity}</th>
-                  <th className="px-2 py-2 text-right">{t.total}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(todayData ?? []).map((e: any) => (
-                  <tr key={e.id} className="border-t border-border/60">
-                    <td className="px-2 py-2">{e.workers?.name ?? "—"}</td>
-                    <td className="px-2 py-2">{e.products?.name ?? "—"}</td>
-                    <td className="px-2 py-2 text-right">{e.quantity}</td>
-                    <td className="px-2 py-2 text-right font-mono">{formatMoney(Number(e.total))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="divide-y divide-border/60">
+            {dayByWorker.map((w) => (
+              <li key={w.worker_id} className="px-4 py-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="font-semibold">{w.name}</span>
+                      <span className="font-mono text-xs text-muted-foreground">#{w.worker_code}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {w.entries} {t.records.toLowerCase()} • {formatNumber(w.qty)} {t.units}
+                    </div>
+                  </div>
+                  <div className="font-mono font-semibold text-primary">{formatMoney(w.total)}</div>
+                </div>
+                <ul className="mt-2 space-y-1 border-l-2 border-border/60 pl-3 text-xs">
+                  {w.productList.map((p, i) => (
+                    <li key={i} className="flex items-center justify-between gap-2 text-muted-foreground">
+                      <span className="truncate">{p.name}</span>
+                      <span className="font-mono">
+                        {formatNumber(p.qty)} {t.units} · <span className="text-foreground">{formatMoney(p.total)}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </>
