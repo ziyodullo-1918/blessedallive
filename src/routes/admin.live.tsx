@@ -15,9 +15,10 @@ import {
 import { formatMoney, formatNumber, t } from "@/lib/i18n";
 import { Pencil, Trash2, Radio, Filter } from "lucide-react";
 import { toast } from "sonner";
+import { PinGate } from "@/components/pin-gate";
 
 export const Route = createFileRoute("/admin/live")({
-  component: LivePage,
+  component: () => (<PinGate><LivePage /></PinGate>),
 });
 
 type Row = {
