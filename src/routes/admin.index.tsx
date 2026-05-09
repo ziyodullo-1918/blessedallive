@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, StatCard } from "@/components/page-header";
-import { formatMoney, formatNumber, monthName, t } from "@/lib/i18n";
+import { formatMoney, formatNumber, t } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
@@ -21,18 +21,11 @@ type Entry = {
   products: { name: string } | null;
 };
 
-function monthRange(d = new Date()) {
-  const start = new Date(d.getFullYear(), d.getMonth(), 1);
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
-}
-
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
 function AdminIndex() {
-  const { start, end } = monthRange();
   const today = todayStr();
   const [pickedDate, setPickedDate] = useState<string>(today);
 
@@ -50,8 +43,18 @@ function AdminIndex() {
     },
   });
 
+  const start = currentPeriod?.start_date ?? today;
+  const endInclusive = currentPeriod?.end_date ?? today;
+  // exclusive upper bound for lt()
+  const end = (() => {
+    const d = new Date(endInclusive);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  })();
+
   const { data: monthData } = useQuery({
-    queryKey: ["admin-month", start, end],
+    queryKey: ["admin-period", start, end],
+    enabled: !!currentPeriod,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("work_entries")
@@ -137,17 +140,18 @@ function AdminIndex() {
     }, {}),
   ).sort((a, b) => b.total - a.total);
 
-  const m = new Date();
-  const monthLabel = `${monthName(m.getMonth())} ${m.getFullYear()}`;
+  const periodLabel = currentPeriod
+    ? `${currentPeriod.start_date} — ${currentPeriod.end_date ?? today}`
+    : "—";
 
   return (
     <>
-      <PageHeader title={t.dashboard} subtitle={monthLabel} />
+      <PageHeader title={t.dashboard} subtitle={periodLabel} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatCard label={t.overallTotal} value={formatMoney(totalThisMonth)} hint={monthLabel} accent="primary" />
+        <StatCard label={t.overallTotal} value={formatMoney(totalThisMonth)} hint={periodLabel} accent="primary" />
         <StatCard label={t.todaySummary} value={formatMoney(totalToday)} hint={`${todayQty} ${t.units}`} accent="success" />
-        <StatCard label={t.totalEntries} value={String(monthData?.length ?? 0)} hint={monthLabel} accent="warning" />
+        <StatCard label={t.totalEntries} value={String(monthData?.length ?? 0)} hint={periodLabel} accent="warning" />
         <StatCard label={t.workers} value={String(activeWorkersToday)} hint="bugun faol" />
       </div>
 
@@ -155,7 +159,7 @@ function AdminIndex() {
         <div className="surface rounded-xl border border-border p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="font-semibold">{t.productionByProduct}</div>
-            <div className="text-xs text-muted-foreground">{monthLabel}</div>
+            <div className="text-xs text-muted-foreground">{periodLabel}</div>
           </div>
           {byProduct.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">{t.noData}</div>
@@ -179,7 +183,7 @@ function AdminIndex() {
         <div className="surface rounded-xl border border-border p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="font-semibold">{t.earningsByWorker}</div>
-            <div className="text-xs text-muted-foreground">{monthLabel}</div>
+            <div className="text-xs text-muted-foreground">{periodLabel}</div>
           </div>
           {byWorker.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">{t.noData}</div>
