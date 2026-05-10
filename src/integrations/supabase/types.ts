@@ -343,6 +343,16 @@ export type Database = {
         }
         Returns: string
       }
+      update_my_entry: {
+        Args: {
+          _entry_id: string
+          _product_id: string
+          _quantity: number
+          _token: string
+          _work_date: string
+        }
+        Returns: undefined
+      }
       verify_admin_pin: { Args: { _pin: string }; Returns: boolean }
       worker_login: {
         Args: { _code: string; _pin: string }
