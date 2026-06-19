@@ -2,6 +2,36 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatMoney, formatNumber, t } from "./i18n";
 
+// jsPDF default Helvetica only supports WinAnsi (Latin-1). Any non-Latin
+// codepoint flips the run to UTF-16 mode and the whole string renders as
+// garbage. We sanitize every string passed to the PDF to a safe subset.
+const CHAR_MAP: Record<string, string> = {
+  "‘": "'", "’": "'", "‚": "'", "‛": "'",
+  "“": '"', "”": '"', "„": '"', "‟": '"',
+  "–": "-", "—": "-", "−": "-", "‐": "-", "‑": "-",
+  "→": "->", "←": "<-", "↔": "<->",
+  "•": "-", "·": "-", "●": "-", "▪": "-",
+  "…": "...",
+  "©": "(c)", "®": "(r)", "™": "(tm)",
+  "\u00A0": " ", "\u2009": " ", "\u200B": "",
+};
+function safe(input: unknown): string {
+  let s = input == null ? "" : String(input);
+  s = s.replace(/[\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2013\u2014\u2212\u2010\u2011\u2192\u2190\u2194\u2022\u00B7\u25CF\u25AA\u2026\u00A9\u00AE\u2122\u00A0\u2009\u200B]/g, (c) => CHAR_MAP[c] ?? c);
+  // Strip anything outside WinAnsi range (keeps printable Latin-1)
+  s = s.replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, "?");
+  return s;
+}
+
+// Monkey-patch doc.text to always sanitize input strings
+function installSafeText(doc: jsPDF) {
+  const orig = doc.text.bind(doc);
+  (doc as any).text = (text: any, x: number, y: number, opts?: any, ...rest: any[]) => {
+    const cleaned = Array.isArray(text) ? text.map(safe) : safe(text);
+    return orig(cleaned as any, x, y, opts, ...rest);
+  };
+}
+
 // Bold green + white palette
 const BRAND = {
   green: [22, 163, 74] as [number, number, number],
