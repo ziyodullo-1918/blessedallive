@@ -32,6 +32,25 @@ function installSafeText(doc: jsPDF) {
   };
 }
 
+function sanitizeCell(c: any): any {
+  if (c == null) return safe(c);
+  if (typeof c === "object" && "content" in c) {
+    return { ...c, content: typeof c.content === "string" || typeof c.content === "number" ? safe(c.content) : c.content };
+  }
+  return safe(c);
+}
+function sanitizeRows(rows: any[][] | undefined): any[][] | undefined {
+  return rows?.map((r) => r.map(sanitizeCell));
+}
+function safeAutoTable(doc: jsPDF, opts: any) {
+  return autoTable(doc, {
+    ...opts,
+    head: sanitizeRows(opts.head),
+    body: sanitizeRows(opts.body),
+    foot: sanitizeRows(opts.foot),
+  });
+}
+
 // Bold green + white palette
 const BRAND = {
   green: [22, 163, 74] as [number, number, number],
