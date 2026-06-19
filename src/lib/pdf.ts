@@ -2,6 +2,55 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatMoney, formatNumber, t } from "./i18n";
 
+// jsPDF default Helvetica only supports WinAnsi (Latin-1). Any non-Latin
+// codepoint flips the run to UTF-16 mode and the whole string renders as
+// garbage. We sanitize every string passed to the PDF to a safe subset.
+const CHAR_MAP: Record<string, string> = {
+  "‘": "'", "’": "'", "‚": "'", "‛": "'",
+  "“": '"', "”": '"', "„": '"', "‟": '"',
+  "–": "-", "—": "-", "−": "-", "‐": "-", "‑": "-",
+  "→": "->", "←": "<-", "↔": "<->",
+  "•": "-", "·": "-", "●": "-", "▪": "-",
+  "…": "...",
+  "©": "(c)", "®": "(r)", "™": "(tm)",
+  "\u00A0": " ", "\u2009": " ", "\u200B": "",
+};
+function safe(input: unknown): string {
+  let s = input == null ? "" : String(input);
+  s = s.replace(/[\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2013\u2014\u2212\u2010\u2011\u2192\u2190\u2194\u2022\u00B7\u25CF\u25AA\u2026\u00A9\u00AE\u2122\u00A0\u2009\u200B]/g, (c) => CHAR_MAP[c] ?? c);
+  // Strip anything outside WinAnsi range (keeps printable Latin-1)
+  s = s.replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, "?");
+  return s;
+}
+
+// Monkey-patch doc.text to always sanitize input strings
+function installSafeText(doc: jsPDF) {
+  const orig = doc.text.bind(doc);
+  (doc as any).text = (text: any, x: number, y: number, opts?: any, ...rest: any[]) => {
+    const cleaned = Array.isArray(text) ? text.map(safe) : safe(text);
+    return orig(cleaned as any, x, y, opts, ...rest);
+  };
+}
+
+function sanitizeCell(c: any): any {
+  if (c == null) return safe(c);
+  if (typeof c === "object" && "content" in c) {
+    return { ...c, content: typeof c.content === "string" || typeof c.content === "number" ? safe(c.content) : c.content };
+  }
+  return safe(c);
+}
+function sanitizeRows(rows: any[][] | undefined): any[][] | undefined {
+  return rows?.map((r) => r.map(sanitizeCell));
+}
+function safeAutoTable(doc: jsPDF, opts: any) {
+  return autoTable(doc, {
+    ...opts,
+    head: sanitizeRows(opts.head),
+    body: sanitizeRows(opts.body),
+    foot: sanitizeRows(opts.foot),
+  });
+}
+
 // Bold green + white palette
 const BRAND = {
   green: [22, 163, 74] as [number, number, number],
@@ -162,7 +211,7 @@ export function workerMonthlyPdf(opts: {
   to: string;
   entries: WorkerEntry[];
 }) {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4" }); installSafeText(doc);
   header(
     doc,
     t.workersMonthlyReport,
@@ -178,7 +227,7 @@ export function workerMonthlyPdf(opts: {
     { label: t.totalEarnings, value: formatMoney(totalSum) },
   ]);
 
-  autoTable(doc, {
+  safeAutoTable(doc, {
     startY: y,
     head: [[t.date, t.product, t.category, t.quantity, t.price, t.total]],
     body: opts.entries.map((e) => [
@@ -224,7 +273,7 @@ export function productsPdf(opts: {
   to: string;
   rows: ProductRow[];
 }) {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4" }); installSafeText(doc);
   header(doc, t.productsReport, `${opts.from} → ${opts.to}`);
 
   const totalQty = opts.rows.reduce((s, r) => s + Number(r.quantity), 0);
@@ -236,7 +285,7 @@ export function productsPdf(opts: {
     { label: t.overallTotal, value: formatMoney(totalSum) },
   ]);
 
-  autoTable(doc, {
+  safeAutoTable(doc, {
     startY: y,
     head: [[t.product, t.category, `${t.quantity} (${t.units})`, t.total]],
     body: opts.rows.map((r) => [
@@ -279,7 +328,7 @@ export function salariesPdf(opts: {
   to: string;
   rows: SalaryRow[];
 }) {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4" }); installSafeText(doc);
   header(doc, t.salariesReport, `${opts.from} → ${opts.to}`);
 
   const totalSum = opts.rows.reduce((s, r) => s + Number(r.total), 0);
@@ -295,7 +344,7 @@ export function salariesPdf(opts: {
   y = sectionTitle(doc, y, t.salariesReport.toUpperCase()) + 6;
 
   // Summary table — 5 columns
-  autoTable(doc, {
+  safeAutoTable(doc, {
     startY: y,
     head: [["#", t.workerName, "ID", `${t.quantity} (${t.units})`, t.totalEarnings]],
     body: opts.rows.map((r, i) => [
@@ -339,7 +388,7 @@ export function salariesPdf(opts: {
       `${r.worker_name}  •  #${r.worker_code}  —  ${t.productsBreakdown}`,
     );
 
-    autoTable(doc, {
+    safeAutoTable(doc, {
       startY: startY + 6,
       head: [[t.product, `${t.quantity} (${t.units})`, t.total]],
       body: r.products.map((p) => [
