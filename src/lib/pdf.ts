@@ -28,6 +28,110 @@ function safe(input: unknown): string {
   return s;
 }
 
+// ===== Emoji rendering via Twemoji PNGs =====
+// jsPDF's built-in Helvetica can't render emoji glyphs. We strip emojis from
+// the text run and overlay matching Twemoji PNGs via the autoTable didDrawCell
+// hook so stickers stay visible in PDFs.
+const EMOJI_RE = /\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}])*/gu;
+const emojiCache = new Map<string, string | null>();
+
+function extractEmojis(s: string): string[] {
+  if (!s) return [];
+  return [...s.matchAll(EMOJI_RE)].map((m) => m[0]);
+}
+
+function emojiCodepoints(emoji: string): string {
+  const cps: string[] = [];
+  for (const ch of emoji) {
+    const cp = ch.codePointAt(0)!;
+    if (cp === 0xfe0f) continue; // skip variation selector
+    cps.push(cp.toString(16));
+  }
+  return cps.join("-");
+}
+
+async function fetchEmoji(emoji: string): Promise<string | null> {
+  if (emojiCache.has(emoji)) return emojiCache.get(emoji)!;
+  const code = emojiCodepoints(emoji);
+  const url = `https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/${code}.png`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      emojiCache.set(emoji, null);
+      return null;
+    }
+    const blob = await res.blob();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(blob);
+    });
+    emojiCache.set(emoji, dataUrl);
+    return dataUrl;
+  } catch {
+    emojiCache.set(emoji, null);
+    return null;
+  }
+}
+
+async function preloadEmojis(strings: (string | null | undefined)[]) {
+  const set = new Set<string>();
+  for (const s of strings) if (s) for (const e of extractEmojis(s)) set.add(e);
+  await Promise.all([...set].map((e) => fetchEmoji(e)));
+}
+
+// Build a didDrawCell hook that overlays emoji PNGs for given body columns.
+// `origByCol[col]` is an array of original strings (with emoji) per body row.
+function emojiOverlay(
+  doc: jsPDF,
+  origByCol: Record<number, (string | null | undefined)[]>,
+) {
+  return (data: any) => {
+    if (data.section !== "body") return;
+    const col = data.column.index;
+    const arr = origByCol[col];
+    if (!arr) return;
+    const orig = arr[data.row.index];
+    if (!orig) return;
+    const emojis = extractEmojis(orig);
+    if (!emojis.length) return;
+    const visible = safe(orig);
+    const fontSize = data.cell.styles.fontSize ?? 9;
+    doc.setFont(
+      data.cell.styles.font ?? "helvetica",
+      data.cell.styles.fontStyle ?? "normal",
+    );
+    doc.setFontSize(fontSize);
+    const textW = visible ? doc.getTextWidth(visible) : 0;
+    const padLeft = (data.cell.padding && data.cell.padding("left")) ?? 5;
+    const padRight = (data.cell.padding && data.cell.padding("right")) ?? 5;
+    const size = Math.min(fontSize + 2, data.cell.height - 4);
+    if (size <= 4) return;
+    const halign = data.cell.styles.halign ?? "left";
+    let x: number;
+    if (halign === "right") {
+      const totalW = emojis.length * (size + 2) - 2;
+      x = data.cell.x + data.cell.width - padRight - totalW - textW - 3;
+    } else {
+      x = data.cell.x + padLeft + textW + (visible ? 3 : 0);
+    }
+    const y = data.cell.y + (data.cell.height - size) / 2;
+    const limit = data.cell.x + data.cell.width - padRight;
+    for (const e of emojis) {
+      const url = emojiCache.get(e);
+      if (!url) continue;
+      if (x + size > limit) break;
+      try {
+        doc.addImage(url, "PNG", x, y, size, size);
+      } catch {
+        // ignore broken image
+      }
+      x += size + 2;
+    }
+  };
+}
+
 // Monkey-patch doc.text to always sanitize input strings
 function installSafeText(doc: jsPDF) {
   const orig = doc.text.bind(doc);
@@ -209,7 +313,7 @@ export type WorkerEntry = {
   total: number;
 };
 
-export function workerMonthlyPdf(opts: {
+export async function workerMonthlyPdf(opts: {
   workerName: string;
   workerCode: string;
   from: string;
@@ -232,6 +336,11 @@ export function workerMonthlyPdf(opts: {
     { label: t.totalEarnings, value: formatMoney(totalSum) },
   ]);
 
+  await preloadEmojis(opts.entries.map((e) => e.product_name));
+  const origByCol = {
+    1: opts.entries.map((e) => e.product_name),
+  };
+
   safeAutoTable(doc, {
     startY: y,
     head: [[t.date, t.product, t.category, t.quantity, t.price, t.total]],
@@ -252,6 +361,7 @@ export function workerMonthlyPdf(opts: {
       ],
     ],
     ...TABLE_COMMON,
+    didDrawCell: emojiOverlay(doc, origByCol),
     columnStyles: {
       0: { cellWidth: 64 },
       1: { cellWidth: "auto" },
@@ -273,7 +383,7 @@ export type ProductRow = {
   total: number;
 };
 
-export function productsPdf(opts: {
+export async function productsPdf(opts: {
   from: string;
   to: string;
   rows: ProductRow[];
@@ -289,6 +399,9 @@ export function productsPdf(opts: {
     { label: t.totalProduction, value: `${formatNumber(totalQty)} ${t.units}` },
     { label: t.overallTotal, value: formatMoney(totalSum) },
   ]);
+
+  await preloadEmojis(opts.rows.map((r) => r.product_name));
+  const origByCol = { 0: opts.rows.map((r) => r.product_name) };
 
   safeAutoTable(doc, {
     startY: y,
@@ -307,6 +420,7 @@ export function productsPdf(opts: {
       ],
     ],
     ...TABLE_COMMON,
+    didDrawCell: emojiOverlay(doc, origByCol),
     columnStyles: {
       0: { cellWidth: "auto" },
       1: { cellWidth: 110 },
@@ -328,7 +442,7 @@ export type SalaryRow = {
   products: { product_name: string; quantity: number; total: number }[];
 };
 
-export function salariesPdf(opts: {
+export async function salariesPdf(opts: {
   from: string;
   to: string;
   rows: SalaryRow[];
@@ -345,10 +459,19 @@ export function salariesPdf(opts: {
     { label: t.overallTotal, value: formatMoney(totalSum) },
   ]);
 
+  // Preload every emoji that may appear (worker names + per-worker products)
+  const allStrings: string[] = [];
+  for (const r of opts.rows) {
+    allStrings.push(r.worker_name);
+    for (const p of r.products) allStrings.push(p.product_name);
+  }
+  await preloadEmojis(allStrings);
+
   // Summary heading
   y = sectionTitle(doc, y, t.salariesReport.toUpperCase()) + 6;
 
   // Summary table — 5 columns
+  const summaryOrig = { 1: opts.rows.map((r) => r.worker_name) };
   safeAutoTable(doc, {
     startY: y,
     head: [["#", t.workerName, "ID", `${t.quantity} (${t.units})`, t.totalEarnings]],
@@ -367,6 +490,7 @@ export function salariesPdf(opts: {
       ],
     ],
     ...TABLE_COMMON,
+    didDrawCell: emojiOverlay(doc, summaryOrig),
     columnStyles: {
       0: { cellWidth: 32, halign: "center" },
       1: { cellWidth: "auto" },
@@ -409,6 +533,7 @@ export function salariesPdf(opts: {
         ],
       ],
       ...TABLE_COMMON,
+      didDrawCell: emojiOverlay(doc, { 0: r.products.map((p) => p.product_name) }),
       columnStyles: {
         0: { cellWidth: "auto" },
         1: { cellWidth: 110, halign: "right" },
