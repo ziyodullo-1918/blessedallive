@@ -43,7 +43,7 @@ function sanitizeRows(rows: any[][] | undefined): any[][] | undefined {
   return rows?.map((r) => r.map(sanitizeCell));
 }
 function safeAutoTable(doc: jsPDF, opts: any) {
-  return autoTable(doc, {
+  return safeAutoTable(doc, {
     ...opts,
     head: sanitizeRows(opts.head),
     body: sanitizeRows(opts.body),
@@ -211,7 +211,7 @@ export function workerMonthlyPdf(opts: {
   to: string;
   entries: WorkerEntry[];
 }) {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4" }); installSafeText(doc);
   header(
     doc,
     t.workersMonthlyReport,
@@ -227,7 +227,7 @@ export function workerMonthlyPdf(opts: {
     { label: t.totalEarnings, value: formatMoney(totalSum) },
   ]);
 
-  autoTable(doc, {
+  safeAutoTable(doc, {
     startY: y,
     head: [[t.date, t.product, t.category, t.quantity, t.price, t.total]],
     body: opts.entries.map((e) => [
@@ -273,7 +273,7 @@ export function productsPdf(opts: {
   to: string;
   rows: ProductRow[];
 }) {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4" }); installSafeText(doc);
   header(doc, t.productsReport, `${opts.from} → ${opts.to}`);
 
   const totalQty = opts.rows.reduce((s, r) => s + Number(r.quantity), 0);
@@ -285,7 +285,7 @@ export function productsPdf(opts: {
     { label: t.overallTotal, value: formatMoney(totalSum) },
   ]);
 
-  autoTable(doc, {
+  safeAutoTable(doc, {
     startY: y,
     head: [[t.product, t.category, `${t.quantity} (${t.units})`, t.total]],
     body: opts.rows.map((r) => [
@@ -328,7 +328,7 @@ export function salariesPdf(opts: {
   to: string;
   rows: SalaryRow[];
 }) {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const doc = new jsPDF({ unit: "pt", format: "a4" }); installSafeText(doc);
   header(doc, t.salariesReport, `${opts.from} → ${opts.to}`);
 
   const totalSum = opts.rows.reduce((s, r) => s + Number(r.total), 0);
@@ -344,7 +344,7 @@ export function salariesPdf(opts: {
   y = sectionTitle(doc, y, t.salariesReport.toUpperCase()) + 6;
 
   // Summary table — 5 columns
-  autoTable(doc, {
+  safeAutoTable(doc, {
     startY: y,
     head: [["#", t.workerName, "ID", `${t.quantity} (${t.units})`, t.totalEarnings]],
     body: opts.rows.map((r, i) => [
@@ -388,7 +388,7 @@ export function salariesPdf(opts: {
       `${r.worker_name}  •  #${r.worker_code}  —  ${t.productsBreakdown}`,
     );
 
-    autoTable(doc, {
+    safeAutoTable(doc, {
       startY: startY + 6,
       head: [[t.product, `${t.quantity} (${t.units})`, t.total]],
       body: r.products.map((p) => [
