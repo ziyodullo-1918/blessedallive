@@ -313,7 +313,7 @@ export type WorkerEntry = {
   total: number;
 };
 
-export function workerMonthlyPdf(opts: {
+export async function workerMonthlyPdf(opts: {
   workerName: string;
   workerCode: string;
   from: string;
@@ -336,6 +336,11 @@ export function workerMonthlyPdf(opts: {
     { label: t.totalEarnings, value: formatMoney(totalSum) },
   ]);
 
+  await preloadEmojis(opts.entries.map((e) => e.product_name));
+  const origByCol = {
+    1: opts.entries.map((e) => e.product_name),
+  };
+
   safeAutoTable(doc, {
     startY: y,
     head: [[t.date, t.product, t.category, t.quantity, t.price, t.total]],
@@ -356,6 +361,7 @@ export function workerMonthlyPdf(opts: {
       ],
     ],
     ...TABLE_COMMON,
+    didDrawCell: emojiOverlay(doc, origByCol),
     columnStyles: {
       0: { cellWidth: 64 },
       1: { cellWidth: "auto" },
@@ -377,7 +383,7 @@ export type ProductRow = {
   total: number;
 };
 
-export function productsPdf(opts: {
+export async function productsPdf(opts: {
   from: string;
   to: string;
   rows: ProductRow[];
@@ -393,6 +399,9 @@ export function productsPdf(opts: {
     { label: t.totalProduction, value: `${formatNumber(totalQty)} ${t.units}` },
     { label: t.overallTotal, value: formatMoney(totalSum) },
   ]);
+
+  await preloadEmojis(opts.rows.map((r) => r.product_name));
+  const origByCol = { 0: opts.rows.map((r) => r.product_name) };
 
   safeAutoTable(doc, {
     startY: y,
@@ -411,6 +420,7 @@ export function productsPdf(opts: {
       ],
     ],
     ...TABLE_COMMON,
+    didDrawCell: emojiOverlay(doc, origByCol),
     columnStyles: {
       0: { cellWidth: "auto" },
       1: { cellWidth: 110 },
@@ -432,7 +442,7 @@ export type SalaryRow = {
   products: { product_name: string; quantity: number; total: number }[];
 };
 
-export function salariesPdf(opts: {
+export async function salariesPdf(opts: {
   from: string;
   to: string;
   rows: SalaryRow[];
@@ -449,10 +459,19 @@ export function salariesPdf(opts: {
     { label: t.overallTotal, value: formatMoney(totalSum) },
   ]);
 
+  // Preload every emoji that may appear (worker names + per-worker products)
+  const allStrings: string[] = [];
+  for (const r of opts.rows) {
+    allStrings.push(r.worker_name);
+    for (const p of r.products) allStrings.push(p.product_name);
+  }
+  await preloadEmojis(allStrings);
+
   // Summary heading
   y = sectionTitle(doc, y, t.salariesReport.toUpperCase()) + 6;
 
   // Summary table — 5 columns
+  const summaryOrig = { 1: opts.rows.map((r) => r.worker_name) };
   safeAutoTable(doc, {
     startY: y,
     head: [["#", t.workerName, "ID", `${t.quantity} (${t.units})`, t.totalEarnings]],
@@ -471,6 +490,7 @@ export function salariesPdf(opts: {
       ],
     ],
     ...TABLE_COMMON,
+    didDrawCell: emojiOverlay(doc, summaryOrig),
     columnStyles: {
       0: { cellWidth: 32, halign: "center" },
       1: { cellWidth: "auto" },
@@ -513,6 +533,7 @@ export function salariesPdf(opts: {
         ],
       ],
       ...TABLE_COMMON,
+      didDrawCell: emojiOverlay(doc, { 0: r.products.map((p) => p.product_name) }),
       columnStyles: {
         0: { cellWidth: "auto" },
         1: { cellWidth: 110, halign: "right" },
