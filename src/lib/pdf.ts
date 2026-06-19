@@ -43,7 +43,7 @@ function sanitizeRows(rows: any[][] | undefined): any[][] | undefined {
   return rows?.map((r) => r.map(sanitizeCell));
 }
 function safeAutoTable(doc: jsPDF, opts: any) {
-  return safeAutoTable(doc, {
+  return autoTable(doc, {
     ...opts,
     head: sanitizeRows(opts.head),
     body: sanitizeRows(opts.body),
