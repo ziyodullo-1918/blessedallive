@@ -18,8 +18,13 @@ const CHAR_MAP: Record<string, string> = {
 function safe(input: unknown): string {
   let s = input == null ? "" : String(input);
   s = s.replace(/[\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2013\u2014\u2212\u2010\u2011\u2192\u2190\u2194\u2022\u00B7\u25CF\u25AA\u2026\u00A9\u00AE\u2122\u00A0\u2009\u200B]/g, (c) => CHAR_MAP[c] ?? c);
+  // Drop emoji and variation selectors (incl. surrogate pairs) entirely
+  s = s.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, "");
+  s = s.replace(/[\uFE00-\uFE0F\u200D\u20E3]/g, "");
   // Strip anything outside WinAnsi range (keeps printable Latin-1)
-  s = s.replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, "?");
+  s = s.replace(/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/g, "");
+  // Collapse whitespace left behind
+  s = s.replace(/[ \t]{2,}/g, " ").trim();
   return s;
 }
 
