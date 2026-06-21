@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkerLoginRouteImport } from './routes/worker-login'
 import { Route as WorkerRouteImport } from './routes/worker'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as BugunRouteImport } from './routes/bugun'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkerIndexRouteImport } from './routes/worker.index'
@@ -36,6 +37,11 @@ const WorkerRoute = WorkerRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BugunRoute = BugunRouteImport.update({
+  id: '/bugun',
+  path: '/bugun',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -92,6 +98,7 @@ const AdminLiveRoute = AdminLiveRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/bugun': typeof BugunRoute
   '/login': typeof LoginRoute
   '/worker': typeof WorkerRouteWithChildren
   '/worker-login': typeof WorkerLoginRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bugun': typeof BugunRoute
   '/login': typeof LoginRoute
   '/worker-login': typeof WorkerLoginRoute
   '/admin/live': typeof AdminLiveRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/bugun': typeof BugunRoute
   '/login': typeof LoginRoute
   '/worker': typeof WorkerRouteWithChildren
   '/worker-login': typeof WorkerLoginRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/bugun'
     | '/login'
     | '/worker'
     | '/worker-login'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/bugun'
     | '/login'
     | '/worker-login'
     | '/admin/live'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/bugun'
     | '/login'
     | '/worker'
     | '/worker-login'
@@ -182,6 +194,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  BugunRoute: typeof BugunRoute
   LoginRoute: typeof LoginRoute
   WorkerRoute: typeof WorkerRouteWithChildren
   WorkerLoginRoute: typeof WorkerLoginRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bugun': {
+      id: '/bugun'
+      path: '/bugun'
+      fullPath: '/bugun'
+      preLoaderRoute: typeof BugunRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -319,6 +339,7 @@ const WorkerRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  BugunRoute: BugunRoute,
   LoginRoute: LoginRoute,
   WorkerRoute: WorkerRouteWithChildren,
   WorkerLoginRoute: WorkerLoginRoute,
