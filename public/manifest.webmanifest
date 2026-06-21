@@ -8,6 +8,15 @@
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
   "lang": "uz",
+  "shortcuts": [
+    {
+      "name": "Bugungi hodimlar yakuni",
+      "short_name": "Bugun",
+      "description": "Bugungi hodimlar yakuni — tezkor ko'rinish",
+      "url": "/bugun",
+      "icons": [{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }]
+    }
+  ],
   "icons": [
     {
       "src": "/icon-512.png",
