@@ -17,36 +17,82 @@ export type Database = {
       app_settings: {
         Row: {
           key: string
+          org_id: string
           updated_at: string
           value: string
         }
         Insert: {
           key: string
+          org_id: string
           updated_at?: string
           value: string
         }
         Update: {
           key?: string
+          org_id?: string
           updated_at?: string
           value?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "app_settings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       categories: {
         Row: {
           created_at: string
           id: string
           name: string
+          org_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          org_id: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -57,6 +103,7 @@ export type Database = {
           end_date: string | null
           id: string
           name: string | null
+          org_id: string
           start_date: string
           status: string
         }
@@ -66,6 +113,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string | null
+          org_id: string
           start_date: string
           status?: string
         }
@@ -75,10 +123,19 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string | null
+          org_id?: string
           start_date?: string
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "periods_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -87,6 +144,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          org_id: string
           price: number
         }
         Insert: {
@@ -95,6 +153,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          org_id: string
           price: number
         }
         Update: {
@@ -103,6 +162,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          org_id?: string
           price?: number
         }
         Relationships: [
@@ -113,30 +173,49 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
         Row: {
           id: string
+          org_id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           id?: string
+          org_id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           id?: string
+          org_id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_entries: {
         Row: {
           created_at: string
           id: string
+          org_id: string
           product_id: string
           quantity: number
           total: number | null
@@ -147,6 +226,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          org_id: string
           product_id: string
           quantity: number
           total?: number | null
@@ -157,6 +237,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          org_id?: string
           product_id?: string
           quantity?: number
           total?: number | null
@@ -165,6 +246,13 @@ export type Database = {
           worker_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "work_entries_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "work_entries_product_id_fkey"
             columns: ["product_id"]
@@ -215,6 +303,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          org_id: string
           pin_hash: string
           worker_code: string
         }
@@ -223,6 +312,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          org_id: string
           pin_hash: string
           worker_code: string
         }
@@ -231,10 +321,19 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          org_id?: string
           pin_hash?: string
           worker_code?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workers_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -288,6 +387,7 @@ export type Database = {
         Args: { _end_date?: string; _next_start?: string }
         Returns: string
       }
+      current_org_id: { Args: never; Returns: string }
       delete_my_entry: {
         Args: { _entry_id: string; _token: string }
         Returns: undefined
@@ -320,6 +420,25 @@ export type Database = {
           name: string
           start_date: string
           status: string
+        }[]
+      }
+      get_worker_period: {
+        Args: { _token: string }
+        Returns: {
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+        }[]
+      }
+      get_worker_products: {
+        Args: { _token: string }
+        Returns: {
+          category_id: string
+          category_name: string
+          id: string
+          name: string
+          price: number
         }[]
       }
       has_role: {
@@ -365,6 +484,7 @@ export type Database = {
         }[]
       }
       worker_logout: { Args: { _token: string }; Returns: undefined }
+      worker_org_id: { Args: { _wid: string }; Returns: string }
       worker_session_check: { Args: { _token: string }; Returns: string }
     }
     Enums: {
