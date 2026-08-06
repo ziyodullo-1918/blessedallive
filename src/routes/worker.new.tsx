@@ -28,13 +28,17 @@ function NewEntry() {
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: currentPeriod } = useQuery({
-    enabled: !!session,
-    queryKey: ["worker-period", session?.id],
+    queryKey: ["current-period-open"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_worker_period" as any, { _token: session!.token });
+      const { data, error } = await supabase
+        .from("periods")
+        .select("start_date, end_date, status")
+        .eq("status", "open")
+        .order("start_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
-      const row = (data as any[])?.[0];
-      return (row ?? null) as { start_date: string; end_date: string | null } | null;
+      return data as { start_date: string; end_date: string | null; status: string } | null;
     },
   });
 
@@ -42,15 +46,15 @@ function NewEntry() {
   const maxDate = today;
 
   const { data: products } = useQuery({
-    enabled: !!session,
-    queryKey: ["worker-products", session?.id],
+    queryKey: ["products-active"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_worker_products" as any, { _token: session!.token });
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, price, categories(name)")
+        .eq("active", true)
+        .order("name");
       if (error) throw error;
-      return ((data ?? []) as any[]).map((p) => ({
-        id: p.id, name: p.name, price: p.price,
-        categories: p.category_name ? { name: p.category_name } : null,
-      })) as unknown as Product[];
+      return (data ?? []) as unknown as Product[];
     },
   });
 

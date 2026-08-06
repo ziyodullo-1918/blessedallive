@@ -13,9 +13,3 @@ export async function isCurrentUserAdmin(): Promise<boolean> {
   if (error) return false;
   return !!data;
 }
-
-export async function getMyOrgId(): Promise<string | null> {
-  const { data, error } = await supabase.rpc("current_org_id" as any);
-  if (error) return null;
-  return (data as string | null) ?? null;
-}

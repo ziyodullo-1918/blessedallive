@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getMyOrgId } from "@/lib/auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,14 +174,9 @@ function CategoryDialog({ editing, onDone }: { editing: Cat | null; onDone: () =
     e.preventDefault();
     const n = name.trim();
     if (!n) return;
-    let error;
-    if (editing) {
-      ({ error } = await supabase.from("categories").update({ name: n }).eq("id", editing.id));
-    } else {
-      const orgId = await getMyOrgId();
-      if (!orgId) { toast.error("Korxona topilmadi"); return; }
-      ({ error } = await supabase.from("categories").insert({ name: n, org_id: orgId }));
-    }
+    const { error } = editing
+      ? await supabase.from("categories").update({ name: n }).eq("id", editing.id)
+      : await supabase.from("categories").insert({ name: n });
     if (error) toast.error(error.message);
     else { toast.success(t.saved); onDone(); }
   };
@@ -216,14 +210,9 @@ function ProductDialog({
       category_id: categoryId === "__none__" ? null : categoryId,
       active,
     };
-    let error;
-    if (editing) {
-      ({ error } = await supabase.from("products").update(payload).eq("id", editing.id));
-    } else {
-      const orgId = await getMyOrgId();
-      if (!orgId) { toast.error("Korxona topilmadi"); return; }
-      ({ error } = await supabase.from("products").insert({ ...payload, org_id: orgId }));
-    }
+    const { error } = editing
+      ? await supabase.from("products").update(payload).eq("id", editing.id)
+      : await supabase.from("products").insert(payload);
     if (error) toast.error(error.message);
     else { toast.success(t.saved); onDone(); }
   };
