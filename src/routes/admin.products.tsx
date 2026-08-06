@@ -174,9 +174,14 @@ function CategoryDialog({ editing, onDone }: { editing: Cat | null; onDone: () =
     e.preventDefault();
     const n = name.trim();
     if (!n) return;
-    const { error } = editing
-      ? await supabase.from("categories").update({ name: n }).eq("id", editing.id)
-      : await supabase.from("categories").insert({ name: n });
+    let error;
+    if (editing) {
+      ({ error } = await supabase.from("categories").update({ name: n }).eq("id", editing.id));
+    } else {
+      const orgId = await getMyOrgId();
+      if (!orgId) { toast.error("Korxona topilmadi"); return; }
+      ({ error } = await supabase.from("categories").insert({ name: n, org_id: orgId }));
+    }
     if (error) toast.error(error.message);
     else { toast.success(t.saved); onDone(); }
   };
@@ -210,9 +215,14 @@ function ProductDialog({
       category_id: categoryId === "__none__" ? null : categoryId,
       active,
     };
-    const { error } = editing
-      ? await supabase.from("products").update(payload).eq("id", editing.id)
-      : await supabase.from("products").insert(payload);
+    let error;
+    if (editing) {
+      ({ error } = await supabase.from("products").update(payload).eq("id", editing.id));
+    } else {
+      const orgId = await getMyOrgId();
+      if (!orgId) { toast.error("Korxona topilmadi"); return; }
+      ({ error } = await supabase.from("products").insert({ ...payload, org_id: orgId }));
+    }
     if (error) toast.error(error.message);
     else { toast.success(t.saved); onDone(); }
   };
