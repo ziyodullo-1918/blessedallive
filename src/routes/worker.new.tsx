@@ -15,7 +15,7 @@ export const Route = createFileRoute("/worker/new")({
   component: NewEntry,
 });
 
-type Product = { id: string; name: string; price: number; categories: { name: string } | null };
+type Product = { id: string; name: string; price: number; category_name: string | null };
 
 function NewEntry() {
   const { session } = useRequireWorker();
@@ -28,17 +28,13 @@ function NewEntry() {
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: currentPeriod } = useQuery({
-    queryKey: ["current-period-open"],
+    queryKey: ["worker-period", session?.token],
+    enabled: !!session,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("periods")
-        .select("start_date, end_date, status")
-        .eq("status", "open")
-        .order("start_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("get_worker_period", { _token: session!.token });
       if (error) throw error;
-      return data as { start_date: string; end_date: string | null; status: string } | null;
+      const row = (data ?? [])[0];
+      return (row ?? null) as { start_date: string; end_date: string | null } | null;
     },
   });
 
@@ -46,13 +42,10 @@ function NewEntry() {
   const maxDate = today;
 
   const { data: products } = useQuery({
-    queryKey: ["products-active"],
+    queryKey: ["worker-products", session?.token],
+    enabled: !!session,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("id, name, price, categories(name)")
-        .eq("active", true)
-        .order("name");
+      const { data, error } = await supabase.rpc("get_worker_products", { _token: session!.token });
       if (error) throw error;
       return (data ?? []) as unknown as Product[];
     },
@@ -102,7 +95,7 @@ function NewEntry() {
               <SelectContent>
                 {(products ?? []).map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.name}{p.categories?.name ? ` · ${p.categories.name}` : ""} — {formatMoney(Number(p.price))}
+                    {p.name}{p.category_name ? ` · ${p.category_name}` : ""} — {formatMoney(Number(p.price))}
                   </SelectItem>
                 ))}
               </SelectContent>
