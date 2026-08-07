@@ -23,7 +23,7 @@ export type Database = {
         }
         Insert: {
           key: string
-          org_id: string
+          org_id?: string
           updated_at?: string
           value: string
         }
@@ -54,7 +54,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          org_id: string
+          org_id?: string
         }
         Update: {
           created_at?: string
@@ -113,7 +113,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string | null
-          org_id: string
+          org_id?: string
           start_date: string
           status?: string
         }
@@ -153,7 +153,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          org_id: string
+          org_id?: string
           price: number
         }
         Update: {
@@ -226,7 +226,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          org_id: string
+          org_id?: string
           product_id: string
           quantity: number
           total?: number | null
@@ -312,7 +312,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          org_id: string
+          org_id?: string
           pin_hash: string
           worker_code: string
         }
